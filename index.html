@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes Miyamoto</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#1e1e24">
+    <link rel="apple-touch-icon" href="./icono-192.png">
+
+    <style>
+        :root {
+            --primary-color: #2b579a;
+            --primary-dark: #1e3d6b;
+            --secondary-color: #e0e0e0;
+            --text-color: #333;
+            --border-radius: 12px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            background: #ffffff;
+            border: 3px solid var(--primary-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            min-height: 600px;
+            position: relative;
+        }
+
+        .view {
+            display: none;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 8px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #000;
+        }
+
+        .filter-section {
+            background-color: #f0f4f8;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .filter-section label {
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .filter-section input[type="date"] {
+            flex-grow: 1;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .table-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            max-height: 320px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            margin-bottom: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        th {
+            background-color: #cccccc;
+            color: #333;
+            font-weight: 600;
+            padding: 8px;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            word-break: break-word;
+        }
+
+        tr:active {
+            background-color: #f0f4f8;
+        }
+
+        .btn {
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 14px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            box-shadow: 0 4px 6px rgba(43, 87, 154, 0.2);
+        }
+
+        .btn-primary:active {
+            background-color: var(--primary-dark);
+            transform: scale(0.98);
+        }
+
+        .btn-secondary { background-color: var(--secondary-color); color: #444; }
+        .btn-success { background-color: #2e7d32; color: #fff; }
+        .btn-danger { background-color: #c62828; color: #fff; }
+
+        .bottom-actions {
+            position: absolute;
+            bottom: 15px;
+            left: 18px;
+            right: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+        }
+
+        .photo-label {
+            font-size: 0.9rem;
+            color: #003366;
+            font-weight: 500;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .photo-uploader {
+            border: 2px dashed #b0b0b0;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            background: #fbfbfb;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-uploader.photo-loaded {
+            border-color: #2b579a;
+            background-color: #e8f0fe;
+        }
+        
+        .photo-text {
+            color: #0056b3;
+            font-weight: 400;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preview-img {
+            width: 100%;
+            max-height: 120px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .comment-option-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .comment-option-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: var(--border-radius);
+            width: 100%;
+            max-width: 400px;
+            padding: 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header { font-weight: bold; font-size: 1.1rem; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+        .modal-body { font-size: 0.9rem; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #eee; padding-top: 8px; }
+
+        .modal-overlay-foto {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 2000;
+        }
+        .modal-menu-foto {
+            background: #fff; width: 100%; max-width: 450px; border-top-left-radius: 16px; border-top-right-radius: 16px;
+            padding: 20px; box-shadow: 0 -4px 12px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .detail-photos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .detail-photos img {
+            width: 100%; height: 90px; object-fit: cover; border-radius: 6px; cursor: zoom-in; border: 1px solid #ddd;
+        }
+
+        .modal-zoom {
+            display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.95); justify-content: center; align-items: center;
+        }
+
+        .modal-zoom-contenido { max-width: 95%; max-height: 85%; object-fit: contain; border-radius: 4px; }
+        .modal-zoom-cerrar {
+            position: absolute; top: 20px; right: 25px; color: #fff; font-size: 35px; font-weight: bold;
+            cursor: pointer; background: rgba(0,0,0,0.5); width: 45px; height: 45px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .status-config {
+            font-size: 0.75rem; padding: 6px 10px; border-radius: 12px; font-weight: bold; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .status-ready { background-color: #e8f5e9; color: #2e7d32; }
+        .status-empty { background-color: #ffebee; color: #c62828; }
+
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff;
+            padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; opacity: 0; transition: opacity 0.3s ease;
+            z-index: 1500; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <datalist id="listaCalles"></datalist>
+    <datalist id="listaEdificios"></datalist>
+    <datalist id="listaTorres"></datalist>
+
+    <div class="app-container">
+        
+        <!-- PANTALLA PRINCIPAL -->
+        <div id="viewMain" class="view active">
+            <div class="header">
+                <div class="header-title">
+                    <img src="logo.png" alt="Logo" style="height: 24px; width: auto; object-fit: contain;" onerror="this.style.display='none'">
+                    <h2>Reportes Miyamoto</h2>
+                </div>
+                <div id="configStatus" class="status-config status-empty" onclick="mostrarConfiguracion()">⚙️ Eq. Vacío</div>
+            </div>
+
+            <div class="filter-section">
+                <label for="filterDate">Día de Trabajo:</label>
+                <input type="date" id="filterDate" onchange="cambiarFechaActiva()">
+            </div>
+
+            <div class="top-actions">
+                <button class="btn btn-success" style="flex: 1;" onclick="compartirOEnviarReporte()">📤 Compartir Reporte</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Calle</th>
+                            <th>Edificación</th>
+                            <th>Ubicación</th>
+                            <th>📜 Certificado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaCuerpo"></tbody>
+                </table>
+            </div>
+
+            <div id="resumenContadores" style="text-align: right; font-size: 0.85rem; font-weight: bold; margin-bottom: 60px; padding-right: 10px;">
+                Total Evaluaciones: 0
+            </div>
+
+            <div class="bottom-actions">
+                <button id="btnDatosCuadrilla" class="btn btn-secondary" style="border-radius: 50%; width: 44px; height: 44px; padding: 0; font-size: 1.2rem;" title="Configurar Equipo">👥</button>
+                <button class="btn btn-primary" style="flex-grow: 1; height: 44px;" onclick="intentarNuevaInspeccion()">➕ Nueva Evaluación</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE FORMULARIO DE INSPECCIÓN -->
+        <div id="viewForm" class="view">
+            <div class="header">
+                <h2 id="formTitle">Nueva Evaluación</h2>
+            </div>
+            <form id="inspeccionForm" onsubmit="guardarFormulario(event)" style="overflow-y: auto; padding-bottom: 20px;">
+                <input type="hidden" id="editId">
+                
+                <div class="form-group">
+                    <label>Nro. Certificado</label>
+                    <input type="text" id="txtCertificado" class="form-control" placeholder="Ingrese número (Ej. 15)" required autocomplete="off" inputmode="numeric" onblur="formatearCertificado(this)">
+                    <small style="color: #666; font-size: 0.75rem;">Se auto-formateará a VEN-XXXXXX</small>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Calle/Sector</label>
+                        <input type="text" id="txtCalle" list="listaCalles" class="form-control" placeholder="Calle Soublette" required autocomplete="off" oninput="actualizarDireccionCompuesta()">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Edificio / Casa</label>
+                        <input type="text" id="txtEdificio" list="listaEdificios" class="form-control" placeholder="Ej. Res. El Parque" required autocomplete="off" oninput="actualizarDireccionCompuesta()">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Torre</label>
+                        <input type="text" id="txtTorre" list="listaTorres" class="form-control" placeholder="Ej. B" autocomplete="off" oninput="actualizarDireccionCompuesta()">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Piso</label>
+                        <input type="text" id="txtPiso" class="form-control" placeholder="Ej. 25" autocomplete="off" oninput="actualizarDireccionCompuesta()">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Apto / Casa</label>
+                        <input type="text" id="txtApto" class="form-control" placeholder="Ej. 25" required autocomplete="off" oninput="actualizarDireccionCompuesta()">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Dirección Completa</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" id="txtDireccionCompleta" class="form-control" readonly placeholder="Parroquia, calle, edificio, torre, Piso, Apartamento" style="background-color: #f0f0f0; font-size: 0.8rem;">
+                        <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="copiarAlPortapapeles('txtDireccionCompleta', 'Dirección copiada')">📋 Copiar</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label style="margin-bottom: 0;">Comentarios</label>
+                        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="abrirSeleccionComentarios()">📋 Seleccionar Comentarios</button>
+                    </div>
+                    <textarea id="txtComentarios" class="form-control" rows="3" placeholder="Observaciones de daños menores..."></textarea>
+                    
+                    <div style="display: flex; justify-content: flex-end; margin-top: 5px;">
+                        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="copiarAlPortapapeles('txtComentarios', 'Comentarios copiados')">📋 Copiar Comentarios</button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                    <div class="form-group">
+                        <label class="photo-label">Foto de la Fachada</label>
+                        <div class="photo-uploader" onclick="abrirMenuFoto('Fachada')">
+                            <span class="photo-text">📸 Capturar/Elegir Fachada</span>
+                            <input type="file" id="fileFachadaCamara" accept="image/*" capture="environment" style="display:none;" onchange="procesarImagen(this, 'prevFachada')">
+                            <input type="file" id="fileFachadaGaleria" accept="image/*" style="display:none;" onchange="procesarImagen(this, 'prevFachada')">
+                            <img id="prevFachada" class="preview-img">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="photo-label">Foto del Boceto</label>
+                        <div class="photo-uploader" onclick="abrirMenuFoto('Boceto')">
+                            <span class="photo-text">📸 Capturar/Elegir Boceto</span>
+                            <input type="file" id="fileBocetoCamara" accept="image/*" capture="environment" style="display:none;" onchange="procesarImagen(this, 'prevBoceto')">
+                            <input type="file" id="fileBocetoGaleria" accept="image/*" style="display:none;" onchange="procesarImagen(this, 'prevBoceto')">
+                            <img id="prevBoceto" class="preview-img">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="regresarPrincipal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Guardar Datos</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- PANTALLA: SELECCIÓN MÚLTIPLE DE COMENTARIOS -->
+        <div id="viewComentarios" class="view">
+            <div class="header">
+                <h2>📋 Daños Menores / Post-Sismo</h2>
+            </div>
+            <div style="flex-grow: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; background: #fff; margin-bottom: 15px;" id="listaOpcionesComentarios"></div>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="regresarFormulario()">Cancelar</button>
+                <button type="button" class="btn btn-primary" style="flex: 1;" onclick="aplicarComentariosSeleccionados()">Aplicar Selección</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA: CONFIGURACIÓN -->
+        <div id="viewConfig" class="view">
+            <div class="header"><h2>⚙️ Configuración Cuadrilla</h2></div>
+            <form id="configForm" onsubmit="guardarConfiguracion(event)">
+                <div class="form-group"><label>Parroquia</label><input type="text" id="cfgParroquia" class="form-control" required oninput="actualizarDireccionCompuesta()"></div>
+                <div class="form-group"><label>Grupo</label><input type="text" id="cfgGrupo" class="form-control" required></div>
+                <div class="form-group"><label>Coordinador</label><input type="text" id="cfgCoordinador" class="form-control" required></div>
+                
+                <div class="form-group">
+                    <label>Nómina de Evaluadores</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                        <input type="text" id="txtNewInspector" class="form-control" placeholder="Nombre">
+                        <button type="button" class="btn btn-primary" onclick="agregarInspectorNavegacion()">+</button>
+                    </div>
+                    <div id="lstInspectores" style="max-height: 120px; overflow-y: auto; border: 1px solid #eee; padding: 6px; border-radius: 6px;"></div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="regresarPrincipal()">Volver</button>
+                    <button type="submit" class="btn btn-success" style="flex: 1;">Guardar Equipo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODALES Y ZOOM -->
+    <div id="modalMenuFoto" class="modal-overlay-foto" onclick="cerrarMenuFoto()">
+        <div class="modal-menu-foto" onclick="event.stopPropagation()">
+            <h3 style="text-align:center; margin-bottom: 5px;">Captura de Imagen</h3>
+            <button class="btn btn-primary" onclick="seleccionarFoto('camara')">📸 Usar Cámara</button>
+            <button class="btn btn-secondary" onclick="seleccionarFoto('galeria')">📁 Elegir de Archivos</button>
+            <button class="btn btn-danger" onclick="cerrarMenuFoto()">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="modalDetalles" class="modal" onclick="cerrarModal('modalDetalles')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header" id="detTitle">Detalles</div>
+            <div class="modal-body" id="detBody"></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="cerrarModal('modalDetalles')">Cerrar</button></div>
+        </div>
+    </div>
+
+    <div id="modalMenu" class="modal" onclick="cerrarModal('modalMenu')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">Opciones de Registro</div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
+                <p id="menuTargetText" style="font-weight: bold; text-align: center; margin-bottom: 8px;"></p>
+                <button class="btn btn-primary" id="btnMenuEditar">✏️ Editar</button>
+                <button class="btn btn-danger" id="btnMenuEliminar">🗑️ Eliminar</button>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="cerrarModal('modalMenu')">Cancelar</button></div>
+        </div>
+    </div>
+
+    <div id="modalZoom" class="modal-zoom" onclick="cerrarZoom()">
+        <span class="modal-zoom-cerrar">&times;</span>
+        <img class="modal-zoom-contenido" id="imgZoomed">
+    </div>
+    
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // Registrar Service Worker para soporte 100% Offline
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => {
+                        console.log('✅ Service Worker activo');
+                        // Buscar actualizaciones solo si hay internet al iniciar
+                        if (navigator.onLine) {
+                            reg.update();
+                        }
+                    })
+                    .catch(err => console.warn('⚠️ Error al registrar Service Worker:', err));
+            });
+        }
+
+        // Respaldo de comentarios por defecto si falla red/archivo
+        let itemsComentariosDisponibles = [
+            "Fisuras leves en repello o revestimiento superficial",
+            "Grietas diagonales menores en tabiques divisorios de mampostería",
+            "Desprendimiento parcial de pañete/revoque en muros",
+            "Fisuras superficiales en uniones de losas y paredes",
+            "Daños leves en elementos no estructurales (cornisas, molduras)",
+            "Estructura sin afectación estructural aparente tras sismo",
+            "Requiere calafateo y sellado de fisuras superficiales",
+            "Propietario ausente / Inmueble cerrado al momento de la visita"
+        ];
+
+        // Carga de comentarios desde JSON (almacenado en caché por SW)
+        async function cargarComentariosDesdeJSON() {
+            try {
+                const response = await fetch('./comentarios.json');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    itemsComentariosDisponibles = data;
+                    console.log("✅ comentarios.json cargado.");
+                }
+            } catch (err) {
+                console.warn("⚠️ Usando lista de comentarios en memoria local:", err.message);
+            }
+        }
+
+        cargarComentariosDesdeJSON();
+
+        let currentPhotoTarget = '';
+        function abrirMenuFoto(target) {
+            currentPhotoTarget = target;
+            document.getElementById('modalMenuFoto').style.display = 'flex';
+        }
+        function cerrarMenuFoto() { document.getElementById('modalMenuFoto').style.display = 'none'; }
+        function seleccionarFoto(origen) {
+            cerrarMenuFoto();
+            const inputId = origen === 'camara' ? 'file' + currentPhotoTarget + 'Camara' : 'file' + currentPhotoTarget + 'Galeria';
+            document.getElementById(inputId).click();
+        }
+
+        function formatearCertificado(input) {
+            let valor = input.value.replace(/\D/g, '');
+            if (valor !== '') {
+                input.value = 'VEN-' + valor.padStart(6, '0');
+            }
+        }
+
+        function copiarAlPortapapeles(idElemento, mensajeExito) {
+            const el = document.getElementById(idElemento);
+            const val = el ? el.value : '';
+            if (!val.trim()) return mostrarToast("⚠️ Campo vacío");
+            
+            navigator.clipboard.writeText(val).then(() => {
+                mostrarToast("✅ " + mensajeExito);
+            }).catch(() => {
+                mostrarToast("❌ Error al copiar");
+            });
+        }
+
+        function actualizarDireccionCompuesta() {
+            const parroquia = document.getElementById("cfgParroquia") ? document.getElementById("cfgParroquia").value.trim() : "";
+            const calle = document.getElementById("txtCalle").value.trim();
+            const edificio = document.getElementById("txtEdificio").value.trim();
+            const torre = document.getElementById("txtTorre").value.trim();
+            const piso = document.getElementById("txtPiso").value.trim();
+            const apto = document.getElementById("txtApto").value.trim();
+
+            const torreFormateada = torre ? (torre.toLowerCase().startsWith("torre") ? torre : `Torre ${torre}`) : "";
+            const pisoFormateado = piso ? (piso.toLowerCase().startsWith("piso") ? piso : `Piso ${piso}`) : "";
+            const aptoFormateado = apto ? (apto.toLowerCase().startsWith("apto") ? apto : `Apto ${apto}`) : "";
+
+            const componentes = [
+                parroquia,
+                calle,
+                edificio,
+                torreFormateada,
+                pisoFormateado,
+                aptoFormateado
+            ].filter(Boolean);
+
+            document.getElementById("txtDireccionCompleta").value = componentes.join(", ");
+        }
+
+        const DB_NAME = "EvaluacionesDB";
+        const DB_VERSION = 1;
+        let db;
+
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = e => {
+            const dbInstance = e.target.result;
+            if (!dbInstance.objectStoreNames.contains("inspecciones")) {
+                dbInstance.createObjectStore("inspecciones", { keyPath: "id", autoIncrement: true });
+            }
+            if (!dbInstance.objectStoreNames.contains("configuracion")) {
+                dbInstance.createObjectStore("configuracion", { keyPath: "fecha" });
+            }
+        };
+
+        request.onsuccess = e => {
+            db = e.target.result;
+            inicializarFechaHoy();
+            cargarTabla();
+        };
+
+        let pressTimer;
+        let fechaActual = ""; 
+        let inspectoresActuales = []; 
+        let callesExistentes = new Set();
+        let edificiosExistentes = new Set();
+        let torresExistentes = new Set();
+
+        function inicializarFechaHoy() {
+            const hoy = new Date();
+            fechaActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+            document.getElementById("filterDate").value = fechaActual;
+            comprobarConfiguracionFecha(fechaActual);
+        }
+
+        function cambiarFechaActiva() {
+            fechaActual = document.getElementById("filterDate").value;
+            comprobarConfiguracionFecha(fechaActual);
+            cargarTabla();
+        }
+
+        function comprobarConfiguracionFecha(fecha) {
+            if (!db) return;
+            db.transaction(["configuracion"], "readonly").objectStore("configuracion").get(fecha).onsuccess = e => {
+                const config = e.target.result;
+                const statusDiv = document.getElementById("configStatus");
+                if (config) {
+                    statusDiv.innerText = "⚙️ Equipo Listo";
+                    statusDiv.className = "status-config status-ready";
+                    inspectoresActuales = config.inspectores || [];
+                    document.getElementById("cfgParroquia").value = config.parroquia || "";
+                } else {
+                    statusDiv.innerText = "⚙️ Sin Configurar";
+                    statusDiv.className = "status-config status-empty";
+                    inspectoresActuales = [];
+                }
+                actualizarDireccionCompuesta();
+            };
+        }
+
+        function renderizarListaInspectores() {
+            const contenedor = document.getElementById("lstInspectores");
+            contenedor.innerHTML = "";
+            inspectoresActuales.forEach((ins, idx) => {
+                contenedor.innerHTML += `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:4px;"><span>👤 ${ins}</span><button type="button" style="background:none; border:none; color:red;" onclick="eliminarInspectorTemporal(${idx})">❌</button></div>`;
+            });
+        }
+
+        function agregarInspectorNavegacion() {
+            const input = document.getElementById("txtNewInspector");
+            if (input.value.trim()) {
+                inspectoresActuales.push(input.value.trim());
+                input.value = "";
+                renderizarListaInspectores();
+            }
+        }
+
+        function eliminarInspectorTemporal(idx) { inspectoresActuales.splice(idx, 1); renderizarListaInspectores(); }
+
+        function mostrarConfiguracion() {
+            document.getElementById("configForm").reset();
+            db.transaction(["configuracion"], "readonly").objectStore("configuracion").get(fechaActual).onsuccess = e => {
+                const config = e.target.result;
+                if (config) {
+                    document.getElementById("cfgGrupo").value = config.grupo;
+                    document.getElementById("cfgCoordinador").value = config.coordinador || "";
+                    document.getElementById("cfgParroquia").value = config.parroquia;
+                    inspectoresActuales = config.inspectores || [];
+                }
+                renderizarListaInspectores();
+                document.getElementById("viewMain").classList.remove("active");
+                document.getElementById("viewConfig").classList.add("active");
+            };
+        }
+
+        function guardarConfiguracion(e) {
+            e.preventDefault();
+            if (inspectoresActuales.length === 0) return alert("⚠️ Agregue al menos un evaluador.");
+            
+            const configObject = {
+                fecha: fechaActual,
+                grupo: document.getElementById("cfgGrupo").value.trim(),
+                coordinador: document.getElementById("cfgCoordinador").value.trim(),
+                parroquia: document.getElementById("cfgParroquia").value.trim(),
+                inspectores: inspectoresActuales
+            };
+
+            db.transaction(["configuracion"], "readwrite").objectStore("configuracion").put(configObject).onsuccess = () => {
+                mostrarToast("✅ Equipo guardado");
+                comprobarConfiguracionFecha(fechaActual);
+                regresarPrincipal();
+            };
+        }
+
+        function intentarNuevaInspeccion() {
+            if (inspectoresActuales.length > 0) mostrarFormulario();
+            else alert("⚠️ Configure el equipo de trabajo primero.");
+        }
+
+        function limpiarFoto(id) {
+            const img = document.getElementById(id);
+            img.style.display = "none";
+            img.src = "";
+            const textSpan = img.closest('.photo-uploader').querySelector('.photo-text');
+            textSpan.style.display = "flex";
+            img.closest('.photo-uploader').classList.remove('photo-loaded');
+        }
+
+        function mostrarFormulario(idEdit = null) {
+            document.getElementById("inspeccionForm").reset();
+            document.getElementById("editId").value = "";
+            ['prevFachada', 'prevBoceto'].forEach(limpiarFoto);
+            actualizarDatalists();
+
+            if (idEdit) {
+                document.getElementById("formTitle").innerText = "Editar Evaluación";
+                document.getElementById("editId").value = idEdit;
+                
+                db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").get(Number(idEdit)).onsuccess = e => {
+                    const r = e.target.result;
+                    if (r) {
+                        document.getElementById("txtCertificado").value = r.certificado;
+                        document.getElementById("txtCalle").value = r.calle;
+                        document.getElementById("txtEdificio").value = r.edificio;
+                        document.getElementById("txtTorre").value = r.torre || "";
+                        document.getElementById("txtPiso").value = r.piso || "";
+                        document.getElementById("txtApto").value = r.apto || "";
+                        document.getElementById("txtComentarios").value = r.comentarios || "";
+                        
+                        const setFoto = (id, base64) => {
+                            if (base64) {
+                                const img = document.getElementById(id);
+                                img.src = base64;
+                                img.style.display = "block";
+                                img.closest('.photo-uploader').querySelector('.photo-text').style.display = "none";
+                                img.closest('.photo-uploader').classList.add('photo-loaded');
+                            }
+                        };
+                        setFoto("prevFachada", r.fotoFachada);
+                        setFoto("prevBoceto", r.fotoBoceto);
+                        actualizarDireccionCompuesta();
+                    }
+                };
+            } else {
+                document.getElementById("formTitle").innerText = "Nueva Evaluación";
+                actualizarDireccionCompuesta();
+            }
+
+            document.querySelectorAll('.view').forEach(v => v.classList.remove("active"));
+            document.getElementById("viewForm").classList.add("active");
+        }
+
+        function regresarPrincipal() {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove("active"));
+            document.getElementById("viewMain").classList.add("active");
+        }
+
+        function abrirSeleccionComentarios() {
+            const contenedor = document.getElementById("listaOpcionesComentarios");
+            contenedor.innerHTML = "";
+            const textoActual = document.getElementById("txtComentarios").value;
+
+            itemsComentariosDisponibles.forEach((item) => {
+                const estaMarcado = textoActual.includes(item) ? "checked" : "";
+                contenedor.innerHTML += `
+                    <label class="comment-option-item">
+                        <input type="checkbox" value="${item}" ${estaMarcado}>
+                        <span>${item}</span>
+                    </label>
+                `;
+            });
+
+            document.querySelectorAll('.view').forEach(v => v.classList.remove("active"));
+            document.getElementById("viewComentarios").classList.add("active");
+        }
+
+        function regresarFormulario() {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove("active"));
+            document.getElementById("viewForm").classList.add("active");
+        }
+
+        function aplicarComentariosSeleccionados() {
+            const checkboxes = document.querySelectorAll('#listaOpcionesComentarios input[type="checkbox"]:checked');
+            let lineas = [];
+            checkboxes.forEach(cb => lineas.push(`- ${cb.value}`));
+            document.getElementById("txtComentarios").value = lineas.join("\n");
+            regresarFormulario();
+        }
+
+        function procesarImagen(input, idPreview) {
+            const file = input.files[0];
+            if (!file) return limpiarFoto(idPreview);
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    const MAX_WIDTH = 500; 
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+                    canvas.height = img.width > MAX_WIDTH ? img.height * scaleSize : img.height;
+
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const preview = document.getElementById(idPreview);
+                    preview.src = canvas.toDataURL("image/jpeg", 0.65);
+                    preview.style.display = "block";
+                    preview.closest('.photo-uploader').querySelector('.photo-text').style.display = "none";
+                    preview.closest('.photo-uploader').classList.add('photo-loaded');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function actualizarDatalists() {
+            const llenar = (id, set) => {
+                const dl = document.getElementById(id);
+                dl.innerHTML = "";
+                set.forEach(val => dl.innerHTML += `<option value="${val}">`);
+            };
+            llenar("listaCalles", callesExistentes);
+            llenar("listaEdificios", edificiosExistentes);
+            llenar("listaTorres", torresExistentes);
+        }
+
+        function guardarFormulario(e) {
+            e.preventDefault();
+            const editId = document.getElementById("editId").value;
+            
+            formatearCertificado(document.getElementById("txtCertificado"));
+            const certificadoFinal = document.getElementById("txtCertificado").value;
+
+            const getFoto = (id) => document.getElementById(id).src.startsWith("data:") ? document.getElementById(id).src : null;
+
+            const registro = {
+                fecha: fechaActual, 
+                certificado: certificadoFinal,
+                calle: document.getElementById("txtCalle").value.trim(),
+                edificio: document.getElementById("txtEdificio").value.trim(),
+                torre: document.getElementById("txtTorre").value.trim(),
+                piso: document.getElementById("txtPiso").value.trim(),
+                apto: document.getElementById("txtApto").value.trim(),
+                comentarios: document.getElementById("txtComentarios").value.trim(),
+                fotoFachada: getFoto("prevFachada"),
+                fotoBoceto: getFoto("prevBoceto")
+            };
+
+            const store = db.transaction(["inspecciones"], "readwrite").objectStore("inspecciones");
+            if (editId) registro.id = Number(editId);
+            
+            store.put(registro).onsuccess = () => {
+                mostrarToast(editId ? "✅ Registro actualizado" : "✅ Registro guardado");
+                regresarPrincipal();
+                cargarTabla();
+            };
+        }
+
+        function cargarTabla() {
+            const tbody = document.getElementById("tablaCuerpo");
+            tbody.innerHTML = "";
+            callesExistentes.clear();
+            edificiosExistentes.clear();
+            torresExistentes.clear();
+
+            if (!db) return;
+
+            const requestCursor = db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").openCursor();
+            let totalDia = 0;
+
+            requestCursor.onsuccess = event => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const r = cursor.value;
+                    
+                    if (r.calle) callesExistentes.add(r.calle);
+                    if (r.edificio) edificiosExistentes.add(r.edificio);
+                    if (r.torre) torresExistentes.add(r.torre);
+
+                    if (r.fecha === fechaActual) {
+                        totalDia++;
+                        const tr = document.createElement("tr");
+
+                        const pisoTexto = r.piso || "-";
+                        const aptoTexto = r.apto || "-";
+                        const torreTexto = r.torre ? `-${r.torre}` : "";
+                        const ubicacionConstruida = `${pisoTexto} | ${aptoTexto}${torreTexto}`;
+
+                        tr.innerHTML = `
+                            <td>${r.calle}</td>
+                            <td>${r.edificio}</td>
+                            <td>${ubicacionConstruida}</td>
+                            <td>${r.certificado}</td>
+                        `;
+                        vincularEventosFila(tr, r.id);
+                        tbody.appendChild(tr);
+                    }
+                    cursor.continue();
+                } else {
+                    document.getElementById('resumenContadores').innerHTML = `Total Evaluaciones Hoy: ${totalDia}`;
+                    actualizarDatalists();
+                }
+            };
+        }
+
+        function vincularEventosFila(fila, id) {
+            const iniciarPresion = e => pressTimer = setTimeout(() => { e.preventDefault(); lanzarMenuOpciones(id); }, 800);
+            const cancelarPresion = () => clearTimeout(pressTimer);
+            const ejecutarClic = () => { clearTimeout(pressTimer); if(document.getElementById("modalMenu").style.display !== "flex") verDetalleInspeccion(id); };
+            
+            fila.addEventListener("touchstart", iniciarPresion, { passive: true });
+            fila.addEventListener("touchend", ejecutarClic);
+            fila.addEventListener("touchmove", cancelarPresion, { passive: true });
+            fila.addEventListener("mousedown", iniciarPresion);
+            fila.addEventListener("mouseup", ejecutarClic);
+            fila.addEventListener("mouseleave", cancelarPresion);
+        }
+
+        function verDetalleInspeccion(id) {
+            db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").get(id).onsuccess = e => {
+                const r = e.target.result;
+                if (!r) return;
+
+                document.getElementById("detTitle").innerText = `Detalle ID: ${r.id}`;
+                const crearImgHtml = (label, src) => src ? `<div><strong>${label}:</strong><br><img src="${src}" onclick="abrirZoom(this)"></div>` : '';
+                let htmlFotos = `<div class="detail-photos">${crearImgHtml('Fachada', r.fotoFachada)}${crearImgHtml('Boceto', r.fotoBoceto)}</div>`;
+
+                document.getElementById("detBody").innerHTML = `
+                    <p><strong>Certificado:</strong> ${r.certificado}</p>
+                    <p><strong>Calle/Sector:</strong> ${r.calle}</p>
+                    <p><strong>Edificación:</strong> ${r.edificio}</p>
+                    <p><strong>Torre:</strong> ${r.torre || 'N/A'}</p>
+                    <p><strong>Piso:</strong> ${r.piso || 'N/A'}</p>
+                    <p><strong>Apto/Casa:</strong> ${r.apto}</p>
+                    <p><strong>Comentarios:</strong><br><pre style="white-space: pre-wrap; font-family: inherit;">${r.comentarios || 'Ninguno'}</pre></p>
+                    ${htmlFotos}
+                `;
+                abrirModal("modalDetalles");
+            };
+        }
+
+        function lanzarMenuOpciones(id) {
+            db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").get(id).onsuccess = e => {
+                const r = e.target.result;
+                if (r) {
+                    document.getElementById("menuTargetText").innerText = `${r.calle} - ${r.edificio} (${r.apto})`;
+                    document.getElementById("btnMenuEditar").onclick = () => { cerrarModal("modalMenu"); mostrarFormulario(id); };
+                    document.getElementById("btnMenuEliminar").onclick = () => {
+                        cerrarModal("modalMenu");
+                        if (confirm("¿Eliminar registro?")) {
+                            db.transaction(["inspecciones"], "readwrite").objectStore("inspecciones").delete(id).onsuccess = () => {
+                                mostrarToast("🗑️ Eliminado"); cargarTabla();
+                            };
+                        }
+                    };
+                    abrirModal("modalMenu");
+                }
+            };
+        }
+
+        function abrirZoom(elementoImg) {
+            document.getElementById("imgZoomed").src = elementoImg.src;
+            document.getElementById("modalZoom").style.display = "flex";
+        }
+        function cerrarZoom() { document.getElementById("modalZoom").style.display = "none"; }
+        function abrirModal(id) { document.getElementById(id).style.display = "flex"; }
+        function cerrarModal(id) { document.getElementById(id).style.display = "none"; }
+        function mostrarToast(msg) {
+            const t = document.getElementById("toast"); t.innerText = msg; t.style.opacity = "1";
+            setTimeout(() => t.style.opacity = "0", 2500);
+        }
+
+        function compartirOEnviarReporte() {
+            const configTrans = db.transaction(["configuracion"], "readonly");
+            configTrans.objectStore("configuracion").get(fechaActual).onsuccess = e => {
+                const config = e.target.result;
+                if (!config) return alert("⚠️ Configure el equipo primero.");
+
+                db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").getAll().onsuccess = event => {
+                    const registros = event.target.result.filter(r => r.fecha === fechaActual);
+                    if (registros.length === 0) return mostrarToast("⚠️ No hay datos hoy.");
+
+                    const estructura = {};
+                    registros.forEach(r => {
+                        const calle = r.calle || "Sin Calle";
+                        const edificio = r.edificio || "Sin Edificación";
+                        if (!estructura[calle]) estructura[calle] = {};
+                        if (!estructura[calle][edificio]) estructura[calle][edificio] = [];
+                        estructura[calle][edificio].push(r);
+                    });
+
+                    let rStr = `📊 *REPORTE DE EVALUACIÓN - REPORTES MIYAMOTO*\n`;
+                    rStr += `Fecha: ${fechaActual.split("-").reverse().join("/")}\n`;
+                    rStr += `Grupo: ${config.grupo}\n`;
+                    rStr += `Parroquia: ${config.parroquia}\n`;
+                    rStr += `====================\n\n`;
+
+                    for (const calle in estructura) {
+                        for (const edificio in estructura[calle]) {
+                            rStr += `*${calle} | 🏢 ${edificio}*\n`;
+
+                            const listaRegs = estructura[calle][edificio];
+                            listaRegs.sort((a, b) => {
+                                const torreA = (a.torre || "").toLowerCase();
+                                const torreB = (b.torre || "").toLowerCase();
+                                if (torreA !== torreB) return torreA.localeCompare(torreB);
+
+                                const pisoA = parseInt(a.piso) || 0;
+                                const pisoB = parseInt(b.piso) || 0;
+                                if (pisoA !== pisoB) return pisoA - pisoB;
+
+                                const aptoA = (a.apto || "").toLowerCase();
+                                const aptoB = (b.apto || "").toLowerCase();
+                                return aptoA.localeCompare(aptoB);
+                            });
+
+                            listaRegs.forEach(r => {
+                                let partesLinea = [`📜 ${r.certificado}`];
+                                if (r.torre) partesLinea.push(`Torre ${r.torre}`);
+                                if (r.piso) partesLinea.push(`Piso ${r.piso}`);
+                                partesLinea.push(`Apto ${r.apto}`);
+
+                                rStr += `${partesLinea.join(" | ")}\n`;
+                            });
+                            rStr += `\n`;
+                        }
+                    }
+
+                    rStr += `====================\n`;
+                    rStr += `*TOTAL EVALUADAS: ${registros.length}*\n`;
+                    rStr += `====================\n`;
+                    rStr += `Coord: ${config.coordinador}\n`;
+                    rStr += `Evaluadores:\n` + config.inspectores.join("\n");
+
+                    if (navigator.share) navigator.share({ text: rStr });
+                    else navigator.clipboard.writeText(rStr).then(() => mostrarToast("✅ Copiado al portapapeles"));
+                };
+            };
+        }
+    </script>
+</body>
+</html>
