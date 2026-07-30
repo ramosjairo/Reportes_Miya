@@ -1,24 +1,23 @@
-const CACHE_NAME = 'miyamoto-cache-v1';
+const CACHE_NAME = 'miyamoto-cache-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './comentarios.json',
     './manifest.json',
     './logo.png',
     './icono-192.png'
 ];
 
-// 1. Instalación: Guarda todos los archivos en el caché local al cargar por primera vez
+// 1. Instalación: Guarda todos los archivos en el caché local
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('📦 Guardando archivos en caché local...');
+            console.log('📦 Guardando archivos en caché local para uso 100% offline...');
             return cache.addAll(ASSETS_TO_CACHE);
         }).then(() => self.skipWaiting())
     );
 });
 
-// 2. Activación: Limpia cachés antiguas si se actualiza la versión
+// 2. Activación: Limpia cachés antiguas automáticamente
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) => {
@@ -34,15 +33,19 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// 3. Estrategia de Red Primero con Respaldo 100% Local (Network First with Cache Fallback)
+// 3. Estrategia Caché Primero con Respaldo en Red (Cache First - 100% Offline)
 self.addEventListener('fetch', (event) => {
-    // Solo manejar solicitudes GET
-    if (event.request.method !== 'GET') return;
+    if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) return;
 
     event.respondWith(
-        fetch(event.request)
-            .then((networkResponse) => {
-                // Si hay internet y la respuesta es válida, actualizamos la caché local
+        caches.match(event.request).then((cachedResponse) => {
+            // Si el archivo ya está en la memoria del teléfono, responde INSTANTÁNEAMENTE
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+
+            // Si no está en caché (recurso nuevo), intenta descargarlo de la red
+            return fetch(event.request).then((networkResponse) => {
                 if (networkResponse && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => {
@@ -50,18 +53,12 @@ self.addEventListener('fetch', (event) => {
                     });
                 }
                 return networkResponse;
-            })
-            .catch(() => {
-                // Si no hay internet / falla la conexión, responde 100% desde la caché local
-                return caches.match(event.request).then((cachedResponse) => {
-                    if (cachedResponse) {
-                        return cachedResponse;
-                    }
-                    // Respaldo para la navegación principal si está offline
-                    if (event.request.mode === 'navigate') {
-                        return caches.match('./index.html');
-                    }
-                });
-            })
+            }).catch(() => {
+                // Captura silenciosa para evitar que la app se cuelgue si no hay red
+                if (event.request.mode === 'navigate') {
+                    return caches.match('./index.html');
+                }
+            });
+        })
     );
 });

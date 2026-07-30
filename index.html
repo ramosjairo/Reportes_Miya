@@ -179,6 +179,24 @@
         .btn-success { background-color: #2e7d32; color: #fff; }
         .btn-danger { background-color: #c62828; color: #fff; }
 
+        .btn-icon {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #555;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .btn-icon:active {
+            background-color: #e0e0e0;
+        }
+
         .bottom-actions {
             position: absolute;
             bottom: 15px;
@@ -266,15 +284,33 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
             font-size: 0.9rem;
             cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .comment-option-item:active {
+            transform: scale(0.98);
         }
         .comment-option-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .comentarios-container {
+            flex-grow: 1;
+            max-height: 60vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
 
         .modal {
@@ -345,6 +381,10 @@
         .status-ready { background-color: #e8f5e9; color: #2e7d32; }
         .status-empty { background-color: #ffebee; color: #c62828; }
 
+        .bg-verde { background-color: #e8f5e9 !important; }
+        .bg-amarillo { background-color: #fffde7 !important; }
+        .bg-rojo { background-color: #ffebee !important; }
+
         .toast {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff;
             padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; opacity: 0; transition: opacity 0.3s ease;
@@ -355,6 +395,7 @@
 <body>
 
     <datalist id="listaCalles"></datalist>
+    <datalist id="listaUrbanismos"></datalist>
     <datalist id="listaEdificios"></datalist>
     <datalist id="listaTorres"></datalist>
 
@@ -384,9 +425,9 @@
                     <thead>
                         <tr>
                             <th>Calle</th>
-                            <th>Edificación</th>
                             <th>Ubicación</th>
-                            <th>📜 Certificado</th>
+                            <th>Certificado</th>
+                            <th style="width: 44px; text-align: center;"></th>
                         </tr>
                     </thead>
                     <tbody id="tablaCuerpo"></tbody>
@@ -398,7 +439,7 @@
             </div>
 
             <div class="bottom-actions">
-                <button id="btnDatosCuadrilla" class="btn btn-secondary" style="border-radius: 50%; width: 44px; height: 44px; padding: 0; font-size: 1.2rem;" title="Configurar Equipo">👥</button>
+                <button id="btnDatosCuadrilla" class="btn btn-secondary" style="border-radius: 50%; width: 44px; height: 44px; padding: 0; font-size: 1.2rem;" title="Configurar Equipo" onclick="mostrarConfiguracion()">👥</button>
                 <button class="btn btn-primary" style="flex-grow: 1; height: 44px;" onclick="intentarNuevaInspeccion()">➕ Nueva Evaluación</button>
             </div>
         </div>
@@ -423,12 +464,16 @@
                         <input type="text" id="txtCalle" list="listaCalles" class="form-control" placeholder="Calle Soublette" required autocomplete="off" oninput="actualizarDireccionCompuesta()">
                     </div>
                     <div class="form-group" style="flex: 1;">
-                        <label>Edificio / Casa</label>
-                        <input type="text" id="txtEdificio" list="listaEdificios" class="form-control" placeholder="Ej. Res. El Parque" required autocomplete="off" oninput="actualizarDireccionCompuesta()">
+                        <label>Urbanismo</label>
+                        <input type="text" id="txtUrbanismo" list="listaUrbanismos" class="form-control" placeholder="Ej. Urb. La Paz" autocomplete="off" oninput="actualizarDireccionCompuesta()">
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 8px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Edificio/Casa</label>
+                        <input type="text" id="txtEdificio" list="listaEdificios" class="form-control" placeholder="Ej. Bloque 4" required autocomplete="off" oninput="actualizarDireccionCompuesta()">
+                    </div>
                     <div class="form-group" style="flex: 1;">
                         <label>Torre</label>
                         <input type="text" id="txtTorre" list="listaTorres" class="form-control" placeholder="Ej. B" autocomplete="off" oninput="actualizarDireccionCompuesta()">
@@ -438,7 +483,7 @@
                         <input type="text" id="txtPiso" class="form-control" placeholder="Ej. 25" autocomplete="off" oninput="actualizarDireccionCompuesta()">
                     </div>
                     <div class="form-group" style="flex: 1;">
-                        <label>Apto / Casa</label>
+                        <label>Apto/Casa</label>
                         <input type="text" id="txtApto" class="form-control" placeholder="Ej. 25" required autocomplete="off" oninput="actualizarDireccionCompuesta()">
                     </div>
                 </div>
@@ -450,6 +495,8 @@
                         <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="copiarAlPortapapeles('txtDireccionCompleta', 'Dirección copiada')">📋 Copiar</button>
                     </div>
                 </div>
+
+                <input type="hidden" id="selGravedad">
 
                 <div class="form-group">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -497,7 +544,7 @@
             <div class="header">
                 <h2>📋 Daños Menores / Post-Sismo</h2>
             </div>
-            <div style="flex-grow: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; background: #fff; margin-bottom: 15px;" id="listaOpcionesComentarios"></div>
+            <div class="comentarios-container" id="listaOpcionesComentarios"></div>
             <div style="display: flex; gap: 10px;">
                 <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="regresarFormulario()">Cancelar</button>
                 <button type="button" class="btn btn-primary" style="flex: 1;" onclick="aplicarComentariosSeleccionados()">Aplicar Selección</button>
@@ -551,8 +598,9 @@
             <div class="modal-header">Opciones de Registro</div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
                 <p id="menuTargetText" style="font-weight: bold; text-align: center; margin-bottom: 8px;"></p>
-                <button class="btn btn-primary" id="btnMenuEditar">✏️ Editar</button>
-                <button class="btn btn-danger" id="btnMenuEliminar">🗑️ Eliminar</button>
+                <button class="btn btn-primary" id="btnMenuVer">👁️ Ver Resumen</button>
+                <button class="btn btn-secondary" id="btnMenuEditar">✏️ Editar Registro</button>
+                <button class="btn btn-danger" id="btnMenuEliminar">🗑️ Eliminar Registro</button>
             </div>
             <div class="modal-footer"><button class="btn btn-secondary" onclick="cerrarModal('modalMenu')">Cancelar</button></div>
         </div>
@@ -566,49 +614,48 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        // Registrar Service Worker para soporte 100% Offline
+        // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(reg => {
-                        console.log('✅ Service Worker activo');
-                        // Buscar actualizaciones solo si hay internet al iniciar
-                        if (navigator.onLine) {
-                            reg.update();
-                        }
+                        console.log('✅ Service Worker 100% Offline registrado.');
+                        if (navigator.onLine) reg.update();
                     })
                     .catch(err => console.warn('⚠️ Error al registrar Service Worker:', err));
             });
         }
 
-        // Respaldo de comentarios por defecto si falla red/archivo
         let itemsComentariosDisponibles = [
-            "Fisuras leves en repello o revestimiento superficial",
-            "Grietas diagonales menores en tabiques divisorios de mampostería",
-            "Desprendimiento parcial de pañete/revoque en muros",
-            "Fisuras superficiales en uniones de losas y paredes",
-            "Daños leves en elementos no estructurales (cornisas, molduras)",
-            "Estructura sin afectación estructural aparente tras sismo",
-            "Requiere calafateo y sellado de fisuras superficiales",
-            "Propietario ausente / Inmueble cerrado al momento de la visita"
+            { gravedad: "Verde", descripcion: "Fisuras superficiales en frisos/revoques (ancho < 0.5 mm)." },
+            { gravedad: "Verde", descripcion: "Agrietamiento en tabiquería de mampostería en unión con vigas/columnas." },
+            { gravedad: "Verde", descripcion: "Desprendimiento puntual de revestimientos, cerámicas o pintura." },
+            { gravedad: "Verde", descripcion: "Desalineación o desprendimiento de láminas de cielo raso." },
+            { gravedad: "Verde", descripcion: "Fisuras en uniones de paneles de drywall/tablaroca." },
+            { gravedad: "Verde", descripcion: "Microfisuras por cortante/flexión en recubrimiento de concreto (< 0.3 mm)." },
+            { gravedad: "Verde", descripcion: "Descascaramiento puntual de recubrimiento (Spalling leve) sin acero expuesto." },
+            { gravedad: "Amarillo", descripcion: "Grietas diagonales en X por cortante en muros o columnas." },
+            { gravedad: "Amarillo", descripcion: "Agrietamiento por flexión en extremos de vigas." },
+            { gravedad: "Amarillo", descripcion: "Spalling severo con exposición de acero de refuerzo (sin pandeo)." },
+            { gravedad: "Amarillo", descripcion: "Degradación o agrietamiento en el nodo/junta viga-columna." },
+            { gravedad: "Amarillo", descripcion: "Fisuras por rotación en la base o pedestal de columnas." },
+            { gravedad: "Amarillo", descripcion: "Grietas escalonadas en juntas de mortero en paredes de carga." },
+            { gravedad: "Amarillo", descripcion: "Separación de muros ortogonales en esquinas por falta de traba." },
+            { gravedad: "Amarillo", descripcion: "Pandeo local o deformación permanente en arriostramientos." },
+            { gravedad: "Amarillo", descripcion: "Aflojamiento o cizallamiento parcial de pernos de anclaje." },
+            { gravedad: "Amarillo", descripcion: "Fisuras en cordones de soldadura de elementos secundarios." },
+            { gravedad: "Rojo", descripcion: "Pandeo de barras de acero con aplastamiento del concreto." },
+            { gravedad: "Rojo", descripcion: "Falla por Piso Blando o Piso Débil (deformación lateral severa)." },
+            { gravedad: "Rojo", descripcion: "Falla por Columna Corta (cizallamiento destructivo)." },
+            { gravedad: "Rojo", descripcion: "Ruptura por Punzonamiento en losas macizas/reticulares." },
+            { gravedad: "Rojo", descripcion: "Cizallamiento total del nodo viga-columna." },
+            { gravedad: "Rojo", descripcion: "Volcamiento, inclinación acentuada o flanqueo de la edificación." },
+            { gravedad: "Rojo", descripcion: "Licuación o Licuefacción de suelos con hundimiento de la cimentación." },
+            { gravedad: "Rojo", descripcion: "Falla, fractura o desplazamiento de pilotes o zapatas." },
+            { gravedad: "Rojo", descripcion: "Desplazamiento lateral de taludes o deslizamiento de ladera." },
+            { gravedad: "Rojo", descripcion: "Volcamiento o desprendimiento de muros parapetos y fachadas." },
+            { gravedad: "Rojo", descripcion: "Colapso o desprendimiento de rampas de escaleras." }
         ];
-
-        // Carga de comentarios desde JSON (almacenado en caché por SW)
-        async function cargarComentariosDesdeJSON() {
-            try {
-                const response = await fetch('./comentarios.json');
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                if (Array.isArray(data) && data.length > 0) {
-                    itemsComentariosDisponibles = data;
-                    console.log("✅ comentarios.json cargado.");
-                }
-            } catch (err) {
-                console.warn("⚠️ Usando lista de comentarios en memoria local:", err.message);
-            }
-        }
-
-        cargarComentariosDesdeJSON();
 
         let currentPhotoTarget = '';
         function abrirMenuFoto(target) {
@@ -644,6 +691,7 @@
         function actualizarDireccionCompuesta() {
             const parroquia = document.getElementById("cfgParroquia") ? document.getElementById("cfgParroquia").value.trim() : "";
             const calle = document.getElementById("txtCalle").value.trim();
+            const urbanismo = document.getElementById("txtUrbanismo") ? document.getElementById("txtUrbanismo").value.trim() : "";
             const edificio = document.getElementById("txtEdificio").value.trim();
             const torre = document.getElementById("txtTorre").value.trim();
             const piso = document.getElementById("txtPiso").value.trim();
@@ -656,6 +704,7 @@
             const componentes = [
                 parroquia,
                 calle,
+                urbanismo,
                 edificio,
                 torreFormateada,
                 pisoFormateado,
@@ -690,26 +739,31 @@
         let fechaActual = ""; 
         let inspectoresActuales = []; 
         let callesExistentes = new Set();
+        let urbanismosExistentes = new Set();
         let edificiosExistentes = new Set();
         let torresExistentes = new Set();
+
+        let configuracionActualGlobal = null;
+        let currentEditCuadrilla = null;
 
         function inicializarFechaHoy() {
             const hoy = new Date();
             fechaActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
             document.getElementById("filterDate").value = fechaActual;
-            comprobarConfiguracionFecha(fechaActual);
+            comprobarConfiguracionGeneral();
         }
 
         function cambiarFechaActiva() {
             fechaActual = document.getElementById("filterDate").value;
-            comprobarConfiguracionFecha(fechaActual);
+            comprobarConfiguracionGeneral();
             cargarTabla();
         }
 
-        function comprobarConfiguracionFecha(fecha) {
+        function comprobarConfiguracionGeneral() {
             if (!db) return;
-            db.transaction(["configuracion"], "readonly").objectStore("configuracion").get(fecha).onsuccess = e => {
+            db.transaction(["configuracion"], "readonly").objectStore("configuracion").get("actual").onsuccess = e => {
                 const config = e.target.result;
+                configuracionActualGlobal = config;
                 const statusDiv = document.getElementById("configStatus");
                 if (config) {
                     statusDiv.innerText = "⚙️ Equipo Listo";
@@ -746,7 +800,7 @@
 
         function mostrarConfiguracion() {
             document.getElementById("configForm").reset();
-            db.transaction(["configuracion"], "readonly").objectStore("configuracion").get(fechaActual).onsuccess = e => {
+            db.transaction(["configuracion"], "readonly").objectStore("configuracion").get("actual").onsuccess = e => {
                 const config = e.target.result;
                 if (config) {
                     document.getElementById("cfgGrupo").value = config.grupo;
@@ -765,7 +819,7 @@
             if (inspectoresActuales.length === 0) return alert("⚠️ Agregue al menos un evaluador.");
             
             const configObject = {
-                fecha: fechaActual,
+                fecha: "actual",
                 grupo: document.getElementById("cfgGrupo").value.trim(),
                 coordinador: document.getElementById("cfgCoordinador").value.trim(),
                 parroquia: document.getElementById("cfgParroquia").value.trim(),
@@ -774,7 +828,7 @@
 
             db.transaction(["configuracion"], "readwrite").objectStore("configuracion").put(configObject).onsuccess = () => {
                 mostrarToast("✅ Equipo guardado");
-                comprobarConfiguracionFecha(fechaActual);
+                comprobarConfiguracionGeneral();
                 regresarPrincipal();
             };
         }
@@ -808,11 +862,14 @@
                     if (r) {
                         document.getElementById("txtCertificado").value = r.certificado;
                         document.getElementById("txtCalle").value = r.calle;
+                        if (document.getElementById("txtUrbanismo")) document.getElementById("txtUrbanismo").value = r.urbanismo || "";
                         document.getElementById("txtEdificio").value = r.edificio;
                         document.getElementById("txtTorre").value = r.torre || "";
                         document.getElementById("txtPiso").value = r.piso || "";
                         document.getElementById("txtApto").value = r.apto || "";
                         document.getElementById("txtComentarios").value = r.comentarios || "";
+                        document.getElementById("selGravedad").value = r.gravedad || "";
+                        currentEditCuadrilla = r.cuadrilla || null;
                         
                         const setFoto = (id, base64) => {
                             if (base64) {
@@ -830,6 +887,7 @@
                 };
             } else {
                 document.getElementById("formTitle").innerText = "Nueva Evaluación";
+                currentEditCuadrilla = null;
                 actualizarDireccionCompuesta();
             }
 
@@ -847,12 +905,41 @@
             contenedor.innerHTML = "";
             const textoActual = document.getElementById("txtComentarios").value;
 
-            itemsComentariosDisponibles.forEach((item) => {
-                const estaMarcado = textoActual.includes(item) ? "checked" : "";
+            const ordenGravedad = { "Verde": 1, "Amarillo": 2, "Rojo": 3 };
+            let itemsOrdenados = [...itemsComentariosDisponibles].sort((a, b) => {
+                const gravA = a.gravedad || "Verde";
+                const gravB = b.gravedad || "Verde";
+                return ordenGravedad[gravA] - ordenGravedad[gravB];
+            });
+
+            itemsOrdenados.forEach((item) => {
+                const desc = item.descripcion || (typeof item === 'string' ? item : "");
+                const grav = item.gravedad || "Verde";
+                const estaMarcado = textoActual.includes(desc) ? "checked" : "";
+                
+                let bgColor = "#fff";
+                let borderColor = "#eee";
+                let textColor = "#333";
+                
+                if(grav === "Verde") {
+                    bgColor = "#e8f5e9";
+                    borderColor = "#2e7d32";
+                    textColor = "#2e7d32";
+                } else if(grav === "Amarillo") {
+                    bgColor = "#fffde7";
+                    borderColor = "#f57f17";
+                    textColor = "#f57f17";
+                } else if(grav === "Rojo") {
+                    bgColor = "#ffebee";
+                    borderColor = "#c62828";
+                    textColor = "#c62828";
+                }
+
                 contenedor.innerHTML += `
-                    <label class="comment-option-item">
-                        <input type="checkbox" value="${item}" ${estaMarcado}>
-                        <span>${item}</span>
+                    <label class="comment-option-item" style="background-color: ${bgColor}; border: 1px solid ${borderColor}; color: ${textColor};">
+                        <input type="checkbox" value="${desc}" data-gravedad="${grav}" ${estaMarcado} style="accent-color: ${borderColor};">
+                        <span style="flex:1; line-height: 1.3;">${desc}</span>
+                        <span style="font-size: 0.7rem; font-weight: bold; background-color: ${borderColor}; color: #fff; padding: 2px 6px; border-radius: 12px; white-space: nowrap;">${grav}</span>
                     </label>
                 `;
             });
@@ -869,12 +956,29 @@
         function aplicarComentariosSeleccionados() {
             const checkboxes = document.querySelectorAll('#listaOpcionesComentarios input[type="checkbox"]:checked');
             let lineas = [];
-            checkboxes.forEach(cb => lineas.push(`- ${cb.value}`));
+            let maxGravedad = "";
+            let nivelGravedad = { "Verde": 1, "Amarillo": 2, "Rojo": 3 };
+            let currentLevel = 0;
+
+            checkboxes.forEach(cb => {
+                lineas.push(`- ${cb.value}`);
+                let g = cb.getAttribute("data-gravedad");
+                if (nivelGravedad[g] > currentLevel) {
+                    currentLevel = nivelGravedad[g];
+                    maxGravedad = g;
+                }
+            });
             document.getElementById("txtComentarios").value = lineas.join("\n");
+            
+            if (maxGravedad) {
+                document.getElementById("selGravedad").value = maxGravedad;
+            }
+            
             regresarFormulario();
         }
 
         function procesarImagen(input, idPreview) {
+            cerrarMenuFoto();
             const file = input.files[0];
             if (!file) return limpiarFoto(idPreview);
 
@@ -905,10 +1009,13 @@
         function actualizarDatalists() {
             const llenar = (id, set) => {
                 const dl = document.getElementById(id);
-                dl.innerHTML = "";
-                set.forEach(val => dl.innerHTML += `<option value="${val}">`);
+                if (dl) {
+                    dl.innerHTML = "";
+                    set.forEach(val => dl.innerHTML += `<option value="${val}">`);
+                }
             };
             llenar("listaCalles", callesExistentes);
+            llenar("listaUrbanismos", urbanismosExistentes);
             llenar("listaEdificios", edificiosExistentes);
             llenar("listaTorres", torresExistentes);
         }
@@ -926,13 +1033,16 @@
                 fecha: fechaActual, 
                 certificado: certificadoFinal,
                 calle: document.getElementById("txtCalle").value.trim(),
+                urbanismo: document.getElementById("txtUrbanismo") ? document.getElementById("txtUrbanismo").value.trim() : "",
                 edificio: document.getElementById("txtEdificio").value.trim(),
                 torre: document.getElementById("txtTorre").value.trim(),
                 piso: document.getElementById("txtPiso").value.trim(),
                 apto: document.getElementById("txtApto").value.trim(),
                 comentarios: document.getElementById("txtComentarios").value.trim(),
+                gravedad: document.getElementById("selGravedad").value,
                 fotoFachada: getFoto("prevFachada"),
-                fotoBoceto: getFoto("prevBoceto")
+                fotoBoceto: getFoto("prevBoceto"),
+                cuadrilla: currentEditCuadrilla || (configuracionActualGlobal ? { ...configuracionActualGlobal } : null)
             };
 
             const store = db.transaction(["inspecciones"], "readwrite").objectStore("inspecciones");
@@ -949,6 +1059,7 @@
             const tbody = document.getElementById("tablaCuerpo");
             tbody.innerHTML = "";
             callesExistentes.clear();
+            urbanismosExistentes.clear();
             edificiosExistentes.clear();
             torresExistentes.clear();
 
@@ -963,6 +1074,7 @@
                     const r = cursor.value;
                     
                     if (r.calle) callesExistentes.add(r.calle);
+                    if (r.urbanismo) urbanismosExistentes.add(r.urbanismo);
                     if (r.edificio) edificiosExistentes.add(r.edificio);
                     if (r.torre) torresExistentes.add(r.torre);
 
@@ -970,18 +1082,27 @@
                         totalDia++;
                         const tr = document.createElement("tr");
 
-                        const pisoTexto = r.piso || "-";
-                        const aptoTexto = r.apto || "-";
-                        const torreTexto = r.torre ? `-${r.torre}` : "";
-                        const ubicacionConstruida = `${pisoTexto} | ${aptoTexto}${torreTexto}`;
+                        if (r.gravedad === "Verde") tr.classList.add("bg-verde");
+                        else if (r.gravedad === "Amarillo") tr.classList.add("bg-amarillo");
+                        else if (r.gravedad === "Rojo") tr.classList.add("bg-rojo");
+
+                        let ubicacionPartes = [];
+                        if (r.edificio) ubicacionPartes.push(`${r.edificio}`);
+                        if (r.piso) ubicacionPartes.push(`Piso ${r.piso}`);
+                        let aptoTorre = "";
+                        if (r.apto) aptoTorre += `Apto ${r.apto}`;
+                        if (r.torre) aptoTorre += (aptoTorre ? ` ${r.torre}` : r.torre);
+                        if (aptoTorre) ubicacionPartes.push(aptoTorre);
+                        const ubicacionConstruida = ubicacionPartes.join(", ");
 
                         tr.innerHTML = `
                             <td>${r.calle}</td>
-                            <td>${r.edificio}</td>
                             <td>${ubicacionConstruida}</td>
                             <td>${r.certificado}</td>
+                            <td style="text-align: center; padding: 0;">
+                                <button class="btn-icon" onclick="abrirMenuRegistro(event, ${r.id})">⋮</button>
+                            </td>
                         `;
-                        vincularEventosFila(tr, r.id);
                         tbody.appendChild(tr);
                     }
                     cursor.continue();
@@ -992,17 +1113,9 @@
             };
         }
 
-        function vincularEventosFila(fila, id) {
-            const iniciarPresion = e => pressTimer = setTimeout(() => { e.preventDefault(); lanzarMenuOpciones(id); }, 800);
-            const cancelarPresion = () => clearTimeout(pressTimer);
-            const ejecutarClic = () => { clearTimeout(pressTimer); if(document.getElementById("modalMenu").style.display !== "flex") verDetalleInspeccion(id); };
-            
-            fila.addEventListener("touchstart", iniciarPresion, { passive: true });
-            fila.addEventListener("touchend", ejecutarClic);
-            fila.addEventListener("touchmove", cancelarPresion, { passive: true });
-            fila.addEventListener("mousedown", iniciarPresion);
-            fila.addEventListener("mouseup", ejecutarClic);
-            fila.addEventListener("mouseleave", cancelarPresion);
+        function abrirMenuRegistro(e, id) {
+            e.stopPropagation();
+            lanzarMenuOpciones(id);
         }
 
         function verDetalleInspeccion(id) {
@@ -1017,10 +1130,12 @@
                 document.getElementById("detBody").innerHTML = `
                     <p><strong>Certificado:</strong> ${r.certificado}</p>
                     <p><strong>Calle/Sector:</strong> ${r.calle}</p>
+                    <p><strong>Urbanismo:</strong> ${r.urbanismo || 'N/A'}</p>
                     <p><strong>Edificación:</strong> ${r.edificio}</p>
                     <p><strong>Torre:</strong> ${r.torre || 'N/A'}</p>
                     <p><strong>Piso:</strong> ${r.piso || 'N/A'}</p>
                     <p><strong>Apto/Casa:</strong> ${r.apto}</p>
+                    <p><strong>Gravedad:</strong> ${r.gravedad || 'No Asignado'}</p>
                     <p><strong>Comentarios:</strong><br><pre style="white-space: pre-wrap; font-family: inherit;">${r.comentarios || 'Ninguno'}</pre></p>
                     ${htmlFotos}
                 `;
@@ -1033,6 +1148,7 @@
                 const r = e.target.result;
                 if (r) {
                     document.getElementById("menuTargetText").innerText = `${r.calle} - ${r.edificio} (${r.apto})`;
+                    document.getElementById("btnMenuVer").onclick = () => { cerrarModal("modalMenu"); verDetalleInspeccion(id); };
                     document.getElementById("btnMenuEditar").onclick = () => { cerrarModal("modalMenu"); mostrarFormulario(id); };
                     document.getElementById("btnMenuEliminar").onclick = () => {
                         cerrarModal("modalMenu");
@@ -1060,70 +1176,68 @@
         }
 
         function compartirOEnviarReporte() {
-            const configTrans = db.transaction(["configuracion"], "readonly");
-            configTrans.objectStore("configuracion").get(fechaActual).onsuccess = e => {
-                const config = e.target.result;
-                if (!config) return alert("⚠️ Configure el equipo primero.");
+            db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").getAll().onsuccess = event => {
+                const registros = event.target.result.filter(r => r.fecha === fechaActual);
+                if (registros.length === 0) return mostrarToast("⚠️ No hay datos hoy.");
 
-                db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").getAll().onsuccess = event => {
-                    const registros = event.target.result.filter(r => r.fecha === fechaActual);
-                    if (registros.length === 0) return mostrarToast("⚠️ No hay datos hoy.");
+                const cuadrillaDia = registros[0].cuadrilla || configuracionActualGlobal;
+                if (!cuadrillaDia) return alert("⚠️ No hay datos de cuadrilla disponibles.");
 
-                    const estructura = {};
-                    registros.forEach(r => {
-                        const calle = r.calle || "Sin Calle";
-                        const edificio = r.edificio || "Sin Edificación";
-                        if (!estructura[calle]) estructura[calle] = {};
-                        if (!estructura[calle][edificio]) estructura[calle][edificio] = [];
-                        estructura[calle][edificio].push(r);
-                    });
+                const estructura = {};
+                registros.forEach(r => {
+                    const calle = r.calle || "Sin Calle";
+                    const edificio = r.edificio || "Sin Edificación";
+                    if (!estructura[calle]) estructura[calle] = {};
+                    if (!estructura[calle][edificio]) estructura[calle][edificio] = [];
+                    estructura[calle][edificio].push(r);
+                });
 
-                    let rStr = `📊 *REPORTE DE EVALUACIÓN - REPORTES MIYAMOTO*\n`;
-                    rStr += `Fecha: ${fechaActual.split("-").reverse().join("/")}\n`;
-                    rStr += `Grupo: ${config.grupo}\n`;
-                    rStr += `Parroquia: ${config.parroquia}\n`;
-                    rStr += `====================\n\n`;
+                let rStr = `📊 *REPORTE DE EVALUACIÓN - REPORTES MIYAMOTO*\n`;
+                rStr += `Fecha: ${fechaActual.split("-").reverse().join("/")}\n`;
+                rStr += `Parroquia: ${cuadrillaDia.parroquia || ""}\n`;
+                rStr += `====================\n\n`;
 
-                    for (const calle in estructura) {
-                        for (const edificio in estructura[calle]) {
-                            rStr += `*${calle} | 🏢 ${edificio}*\n`;
+                for (const calle in estructura) {
+                    for (const edificio in estructura[calle]) {
+                        rStr += `*${calle} | 🏢 ${edificio}*\n`;
 
-                            const listaRegs = estructura[calle][edificio];
-                            listaRegs.sort((a, b) => {
-                                const torreA = (a.torre || "").toLowerCase();
-                                const torreB = (b.torre || "").toLowerCase();
-                                if (torreA !== torreB) return torreA.localeCompare(torreB);
+                        const listaRegs = estructura[calle][edificio];
+                        listaRegs.sort((a, b) => {
+                            const torreA = (a.torre || "").toLowerCase();
+                            const torreB = (b.torre || "").toLowerCase();
+                            if (torreA !== torreB) return torreA.localeCompare(torreB);
 
-                                const pisoA = parseInt(a.piso) || 0;
-                                const pisoB = parseInt(b.piso) || 0;
-                                if (pisoA !== pisoB) return pisoA - pisoB;
+                            const pisoA = parseInt(a.piso) || 0;
+                            const pisoB = parseInt(b.piso) || 0;
+                            if (pisoA !== pisoB) return pisoA - pisoB;
 
-                                const aptoA = (a.apto || "").toLowerCase();
-                                const aptoB = (b.apto || "").toLowerCase();
-                                return aptoA.localeCompare(aptoB);
-                            });
+                            const aptoA = (a.apto || "").toLowerCase();
+                            const aptoB = (b.apto || "").toLowerCase();
+                            return aptoA.localeCompare(aptoB);
+                        });
 
-                            listaRegs.forEach(r => {
-                                let partesLinea = [`📜 ${r.certificado}`];
-                                if (r.torre) partesLinea.push(`Torre ${r.torre}`);
-                                if (r.piso) partesLinea.push(`Piso ${r.piso}`);
-                                partesLinea.push(`Apto ${r.apto}`);
+                        listaRegs.forEach(r => {
+                            let partesLinea = [`📜 ${r.certificado}`];
+                            
+                            if (r.piso) partesLinea.push(`Piso ${r.piso}`);
+                            
+                            const torreIdentificador = r.torre || "";
+                            partesLinea.push(`Apto ${r.apto}${torreIdentificador}`);
 
-                                rStr += `${partesLinea.join(" | ")}\n`;
-                            });
-                            rStr += `\n`;
-                        }
+                            rStr += `${partesLinea.join(" | ")}\n`;
+                        });
+                        rStr += `\n`;
                     }
+                }
 
-                    rStr += `====================\n`;
-                    rStr += `*TOTAL EVALUADAS: ${registros.length}*\n`;
-                    rStr += `====================\n`;
-                    rStr += `Coord: ${config.coordinador}\n`;
-                    rStr += `Evaluadores:\n` + config.inspectores.join("\n");
+                rStr += `====================\n`;
+                rStr += `*TOTAL EVALUADAS: ${registros.length}*\n`;
+                rStr += `====================\n`;
+                rStr += `Coord: ${cuadrillaDia.coordinador || ""}\n`;
+                rStr += `Evaluadores:\n` + (cuadrillaDia.inspectores ? cuadrillaDia.inspectores.join("\n") : "");
 
-                    if (navigator.share) navigator.share({ text: rStr });
-                    else navigator.clipboard.writeText(rStr).then(() => mostrarToast("✅ Copiado al portapapeles"));
-                };
+                if (navigator.share) navigator.share({ text: rStr });
+                else navigator.clipboard.writeText(rStr).then(() => mostrarToast("✅ Copiado al portapapeles"));
             };
         }
     </script>

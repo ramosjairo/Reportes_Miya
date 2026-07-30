@@ -1,9 +1,10 @@
 {
-  "version": "v5.2",
+  "version": "v2.0",
   "titulo": "🚀 ¡Nueva Versión Instalada (v5.2)!",
   "fecha": "2026-07-27",
   "cambios": [
     "📸 Nuevo menú personalizado para capturar fotos: permite elegir de forma garantizada entre \"Tomar Foto con Cámara\" y \"Elegir de Galería\".",
-    "📱 Corrección de estabilidad en la cámara para dispositivos móviles."
+    "📱 Corrección de estabilidad en la cámara para dispositivos móviles.",
+    "⚡ Funcionamiento 100% Offline mejorado: apertura instantánea sin esperas de red al estar desconectado."
   ]
 }
