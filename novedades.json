@@ -1,10 +1,11 @@
 {
-  "version": "v2.0",
-  "titulo": "🚀 ¡Nueva Versión Instalada (v5.2)!",
-  "fecha": "2026-07-27",
+  "version": "v5.3",
+  "titulo": "🚀 ¡Nueva Versión Instalada (v5.3)!",
+  "fecha": "2026-07-31",
   "cambios": [
-    "📸 Nuevo menú personalizado para capturar fotos: permite elegir de forma garantizada entre \"Tomar Foto con Cámara\" y \"Elegir de Galería\".",
-    "📱 Corrección de estabilidad en la cámara para dispositivos móviles.",
-    "⚡ Funcionamiento 100% Offline mejorado: apertura instantánea sin esperas de red al estar desconectado."
+    "💾 Descarga individual de fotos desde el detalle de inspección.",
+    "📦 Exportación masiva de imágenes del día en formato .ZIP (100% offline).",
+    "🗑️ Opción dinámica para eliminar/quitar fotos tomadas desde el modal de captura.",
+    "♻️ Compresión optimizada (Blobs) para máximo ahorro de memoria RAM."
   ]
 }

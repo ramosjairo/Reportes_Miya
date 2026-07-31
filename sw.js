@@ -1,10 +1,11 @@
-const CACHE_NAME = 'miyamoto-cache-v2';
+const CACHE_NAME = 'miyamoto-cache-v4';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
     './logo.png',
-    './icono-192.png'
+    './icono-192.png',
+    './jszip.min.js'
 ];
 
 // 1. Instalación: Guarda todos los archivos en el caché local

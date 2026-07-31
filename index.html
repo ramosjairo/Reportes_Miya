@@ -390,6 +390,24 @@
             padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; opacity: 0; transition: opacity 0.3s ease;
             z-index: 1500; pointer-events: none;
         }
+
+        .btn-descargar-foto {
+            display: block;
+            width: 100%;
+            margin-top: 6px;
+            padding: 8px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+        }
+        .btn-descargar-foto:active {
+            background-color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
@@ -406,7 +424,7 @@
             <div class="header">
                 <div class="header-title">
                     <img src="logo.png" alt="Logo" style="height: 24px; width: auto; object-fit: contain;" onerror="this.style.display='none'">
-                    <h2>Reportes Miyamoto</h2>
+                    <h2>Reportes Miyamoto <span id="appVersionSpan" style="font-size: 0.75rem; color: #666; vertical-align: middle;"></span></h2>
                 </div>
                 <div id="configStatus" class="status-config status-empty" onclick="mostrarConfiguracion()">⚙️ Eq. Vacío</div>
             </div>
@@ -417,7 +435,8 @@
             </div>
 
             <div class="top-actions">
-                <button class="btn btn-success" style="flex: 1;" onclick="compartirOEnviarReporte()">📤 Compartir Reporte</button>
+                <button class="btn btn-success" style="flex: 1;" onclick="compartirOEnviarReporte()">📤 Compartir</button>
+                <button class="btn btn-primary" style="flex: 1; background-color: #f57c00;" onclick="exportarFotosZIP()">📦 Exportar ZIP</button>
             </div>
 
             <div class="table-container">
@@ -581,6 +600,7 @@
             <h3 style="text-align:center; margin-bottom: 5px;">Captura de Imagen</h3>
             <button class="btn btn-primary" onclick="seleccionarFoto('camara')">📸 Usar Cámara</button>
             <button class="btn btn-secondary" onclick="seleccionarFoto('galeria')">📁 Elegir de Archivos</button>
+            <button id="btnEliminarFotoModal" class="btn" style="background-color: #ffebee; color: #c62828; display: none;" onclick="confirmarEliminarFoto()">🗑️ Eliminar Imagen</button>
             <button class="btn btn-danger" onclick="cerrarMenuFoto()">Cancelar</button>
         </div>
     </div>
@@ -613,8 +633,54 @@
     
     <div id="toast" class="toast"></div>
 
+    <script src="./jszip.min.js"></script>
     <script>
-        // Service Worker
+        /**
+         * Guarda una foto (sea Blob o Base64) directamente en el almacenamiento local del dispositivo.
+         * @param {Blob|string} foto - Objeto Blob o cadena Base64 de la foto.
+         * @param {string} nombreArchivo - Nombre con el que se guardará (ej: 'Inspeccion_Foto1.jpg').
+         */
+        function guardarFotoEnDiscoLocal(foto, nombreArchivo = 'foto_inspeccion.jpg') {
+            let url;
+            let esUrlCreada = false;
+
+            // 1. Convertir o preparar la URL de la imagen
+            if (foto instanceof Blob) {
+                url = URL.createObjectURL(foto);
+                esUrlCreada = true;
+            } else {
+                url = foto; // Si es Base64 antigua
+            }
+
+            // 2. Crear un elemento <a> virtual
+            const enlace = document.createElement('a');
+            enlace.href = url;
+            enlace.download = nombreArchivo; // Define que se descargará y el nombre del archivo
+
+            // 3. Forzar el evento de descarga en el navegador
+            document.body.appendChild(enlace);
+            enlace.click();
+            document.body.removeChild(enlace);
+
+            // 4. Liberar memoria si creamos una URL temporal
+            if (esUrlCreada) {
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+        }
+
+        function descargarFotoActual() {
+            // Ejemplo: tomar la foto seleccionada del borrador o inspección
+            if (fotoActualBlob) {
+                const fecha = new Date().toISOString().slice(0, 10);
+                guardarFotoEnDiscoLocal(fotoActualBlob, `Mamposteria_${fecha}.jpg`);
+            } else {
+                alert("No hay ninguna foto seleccionada para guardar.");
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // 1. REGISTRO DEL SERVICE WORKER (PWA)
+        // ------------------------------------------------------------------
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -626,7 +692,21 @@
             });
         }
 
+        // ------------------------------------------------------------------
+        // 2. UTILIDADES Y HELPERS DE IMÁGENES (COMPATIBILIDAD BASE64 / BLOB)
+        // ------------------------------------------------------------------
+        function obtenerUrlFoto(foto) {
+            if (!foto) return "";
+            if (foto instanceof Blob) return URL.createObjectURL(foto);
+            if (typeof foto === "string" && foto.startsWith("data:")) return foto;
+            return foto; // Fallback
+        }
+
+        // ------------------------------------------------------------------
+        // 3. DATOS Y VARIABLES GLOBALES
+        // ------------------------------------------------------------------
         let itemsComentariosDisponibles = [
+            // 🟢 GRAVEDAD VERDE (Leve)
             { gravedad: "Verde", descripcion: "Fisuras superficiales en frisos/revoques (ancho < 0.5 mm)." },
             { gravedad: "Verde", descripcion: "Agrietamiento en tabiquería de mampostería en unión con vigas/columnas." },
             { gravedad: "Verde", descripcion: "Desprendimiento puntual de revestimientos, cerámicas o pintura." },
@@ -634,16 +714,26 @@
             { gravedad: "Verde", descripcion: "Fisuras en uniones de paneles de drywall/tablaroca." },
             { gravedad: "Verde", descripcion: "Microfisuras por cortante/flexión en recubrimiento de concreto (< 0.3 mm)." },
             { gravedad: "Verde", descripcion: "Descascaramiento puntual de recubrimiento (Spalling leve) sin acero expuesto." },
+            { gravedad: "Verde", descripcion: "Fisura lineal fina sobre junta de mortero (ancho < 1 mm)." },
+            { gravedad: "Verde", descripcion: "Descascaramiento o fisuración leve del acabado sin afectación del bloque." },
+
+            // 🟡 GRAVEDAD AMARILLO (Moderado)
             { gravedad: "Amarillo", descripcion: "Grietas diagonales en X por cortante en muros o columnas." },
             { gravedad: "Amarillo", descripcion: "Agrietamiento por flexión en extremos de vigas." },
             { gravedad: "Amarillo", descripcion: "Spalling severo con exposición de acero de refuerzo (sin pandeo)." },
             { gravedad: "Amarillo", descripcion: "Degradación o agrietamiento en el nodo/junta viga-columna." },
             { gravedad: "Amarillo", descripcion: "Fisuras por rotación en la base o pedestal de columnas." },
-            { gravedad: "Amarillo", descripcion: "Grietas escalonadas en juntas de mortero en paredes de carga." },
             { gravedad: "Amarillo", descripcion: "Separación de muros ortogonales en esquinas por falta de traba." },
             { gravedad: "Amarillo", descripcion: "Pandeo local o deformación permanente en arriostramientos." },
             { gravedad: "Amarillo", descripcion: "Aflojamiento o cizallamiento parcial de pernos de anclaje." },
             { gravedad: "Amarillo", descripcion: "Fisuras en cordones de soldadura de elementos secundarios." },
+            { gravedad: "Amarillo", descripcion: "Fisuras escalonadas en juntas de mortero (ancho 1 mm a 3 mm)." },
+            { gravedad: "Amarillo", descripcion: "Grietas diagonales partiendo de esquinas de puertas o ventanas." },
+            { gravedad: "Amarillo", descripcion: "Grieta vertical de separación en la unión entre muro y columna/viga (ancho < 3 mm)." },
+            { gravedad: "Amarillo", descripcion: "Desprendimiento parcial de grandes paños de friso o revestimiento." },
+            { gravedad: "Amarillo", descripcion: "Desplazamiento o fisura en antepechos y muros de cerramiento sin riesgo inmediato de caída." },
+
+            // 🔴 GRAVEDAD ROJO (Severo)
             { gravedad: "Rojo", descripcion: "Pandeo de barras de acero con aplastamiento del concreto." },
             { gravedad: "Rojo", descripcion: "Falla por Piso Blando o Piso Débil (deformación lateral severa)." },
             { gravedad: "Rojo", descripcion: "Falla por Columna Corta (cizallamiento destructivo)." },
@@ -653,16 +743,57 @@
             { gravedad: "Rojo", descripcion: "Licuación o Licuefacción de suelos con hundimiento de la cimentación." },
             { gravedad: "Rojo", descripcion: "Falla, fractura o desplazamiento de pilotes o zapatas." },
             { gravedad: "Rojo", descripcion: "Desplazamiento lateral de taludes o deslizamiento de ladera." },
-            { gravedad: "Rojo", descripcion: "Volcamiento o desprendimiento de muros parapetos y fachadas." },
-            { gravedad: "Rojo", descripcion: "Colapso o desprendimiento de rampas de escaleras." }
+            { gravedad: "Rojo", descripcion: "Colapso o desprendimiento de rampas de escaleras." },
+            { gravedad: "Rojo", descripcion: "Grieta diagonal o en 'X' severa atravesando bloques (ancho > 3 mm)." },
+            { gravedad: "Rojo", descripcion: "Grieta horizontal severa por oscilación fuera del plano (flexión)." },
+            { gravedad: "Rojo", descripcion: "Abombamiento, pandeo o pérdida de verticalidad del muro (Riesgo de colapso)." },
+            { gravedad: "Rojo", descripcion: "Aplastamiento o trituración de bloques en la base del muro por compresión." },
+            { gravedad: "Rojo", descripcion: "Desprendimiento o inclinación de parapetos, cornisas y elementos en voladizo." },
+            { gravedad: "Rojo", descripcion: "Separación total de la pared respecto a la estructura principal de concreto/acero." },
+            { gravedad: "Rojo", descripcion: "Separación y desacople de hojas en muros dobles de mampostería." }      
         ];
 
         let currentPhotoTarget = '';
+        let pressTimer;
+        let fechaActual = ""; 
+        let inspectoresActuales = []; 
+        let callesExistentes = new Set();
+        let urbanismosExistentes = new Set();
+        let edificiosExistentes = new Set();
+        let torresExistentes = new Set();
+        let configuracionActualGlobal = null;
+        let currentEditCuadrilla = null;
+
+        // ------------------------------------------------------------------
+        // 4. FUNCIONES UI BÁSICAS
+        // ------------------------------------------------------------------
         function abrirMenuFoto(target) {
             currentPhotoTarget = target;
+            
+            const imgPreview = document.getElementById('prev' + target);
+            const btnEliminar = document.getElementById('btnEliminarFotoModal');
+            
+            if (imgPreview && imgPreview.style.display === 'block') {
+                btnEliminar.style.display = 'block';
+            } else {
+                btnEliminar.style.display = 'none';
+            }
+            
             document.getElementById('modalMenuFoto').style.display = 'flex';
         }
-        function cerrarMenuFoto() { document.getElementById('modalMenuFoto').style.display = 'none'; }
+        
+        function cerrarMenuFoto() { 
+            document.getElementById('modalMenuFoto').style.display = 'none'; 
+        }
+
+        function confirmarEliminarFoto() {
+            if (confirm("¿Deseas quitar esta imagen?")) {
+                limpiarFoto('prev' + currentPhotoTarget);
+                cerrarMenuFoto();
+                mostrarToast("🗑️ Imagen eliminada");
+            }
+        }
+        
         function seleccionarFoto(origen) {
             cerrarMenuFoto();
             const inputId = origen === 'camara' ? 'file' + currentPhotoTarget + 'Camara' : 'file' + currentPhotoTarget + 'Galeria';
@@ -702,23 +833,21 @@
             const aptoFormateado = apto ? (apto.toLowerCase().startsWith("apto") ? apto : `Apto ${apto}`) : "";
 
             const componentes = [
-                parroquia,
-                calle,
-                urbanismo,
-                edificio,
-                torreFormateada,
-                pisoFormateado,
-                aptoFormateado
+                parroquia, calle, urbanismo, edificio, torreFormateada, pisoFormateado, aptoFormateado
             ].filter(Boolean);
 
             document.getElementById("txtDireccionCompleta").value = componentes.join(", ");
         }
 
+        // ------------------------------------------------------------------
+        // 5. BASE DE DATOS E INICIALIZACIÓN
+        // ------------------------------------------------------------------
         const DB_NAME = "EvaluacionesDB";
         const DB_VERSION = 1;
         let db;
 
         const request = indexedDB.open(DB_NAME, DB_VERSION);
+        
         request.onupgradeneeded = e => {
             const dbInstance = e.target.result;
             if (!dbInstance.objectStoreNames.contains("inspecciones")) {
@@ -733,18 +862,13 @@
             db = e.target.result;
             inicializarFechaHoy();
             cargarTabla();
+            
+            // 1. Ejecutar el script de migración en background para liberar RAM
+            migrarFotosAntiguasABlob();
+            
+            // 2. Restaurar borrador pendiente si la app se cerró inesperadamente
+            restaurarBorrador();
         };
-
-        let pressTimer;
-        let fechaActual = ""; 
-        let inspectoresActuales = []; 
-        let callesExistentes = new Set();
-        let urbanismosExistentes = new Set();
-        let edificiosExistentes = new Set();
-        let torresExistentes = new Set();
-
-        let configuracionActualGlobal = null;
-        let currentEditCuadrilla = null;
 
         function inicializarFechaHoy() {
             const hoy = new Date();
@@ -759,6 +883,9 @@
             cargarTabla();
         }
 
+        // ------------------------------------------------------------------
+        // 6. CONFIGURACIÓN Y EQUIPO (CUADRILLA)
+        // ------------------------------------------------------------------
         function comprobarConfiguracionGeneral() {
             if (!db) return;
             db.transaction(["configuracion"], "readonly").objectStore("configuracion").get("actual").onsuccess = e => {
@@ -796,7 +923,10 @@
             }
         }
 
-        function eliminarInspectorTemporal(idx) { inspectoresActuales.splice(idx, 1); renderizarListaInspectores(); }
+        function eliminarInspectorTemporal(idx) { 
+            inspectoresActuales.splice(idx, 1); 
+            renderizarListaInspectores(); 
+        }
 
         function mostrarConfiguracion() {
             document.getElementById("configForm").reset();
@@ -833,6 +963,9 @@
             };
         }
 
+        // ------------------------------------------------------------------
+        // 7. FLUJO DEL FORMULARIO Y AUTOSAVE
+        // ------------------------------------------------------------------
         function intentarNuevaInspeccion() {
             if (inspectoresActuales.length > 0) mostrarFormulario();
             else alert("⚠️ Configure el equipo de trabajo primero.");
@@ -842,9 +975,11 @@
             const img = document.getElementById(id);
             img.style.display = "none";
             img.src = "";
+            img.fileBlob = null; // Limpiar blob temporal
             const textSpan = img.closest('.photo-uploader').querySelector('.photo-text');
             textSpan.style.display = "flex";
             img.closest('.photo-uploader').classList.remove('photo-loaded');
+            guardarBorrador(); // Disparar borrador al borrar foto
         }
 
         function mostrarFormulario(idEdit = null) {
@@ -871,10 +1006,16 @@
                         document.getElementById("selGravedad").value = r.gravedad || "";
                         currentEditCuadrilla = r.cuadrilla || null;
                         
-                        const setFoto = (id, base64) => {
-                            if (base64) {
+                        // Set foto optimizado para manejar Blobs
+                        const setFoto = (id, fotoData) => {
+                            if (fotoData) {
                                 const img = document.getElementById(id);
-                                img.src = base64;
+                                img.src = obtenerUrlFoto(fotoData); // Renderiza local temporal o Base64
+                                if (fotoData instanceof Blob) {
+                                    img.fileBlob = fotoData; // Conserva referencia al Blob nativo
+                                } else {
+                                    img.fileBlob = null;
+                                }
                                 img.style.display = "block";
                                 img.closest('.photo-uploader').querySelector('.photo-text').style.display = "none";
                                 img.closest('.photo-uploader').classList.add('photo-loaded');
@@ -974,9 +1115,13 @@
                 document.getElementById("selGravedad").value = maxGravedad;
             }
             
+            guardarBorrador(); // Trigger autosave al aplicar comentarios
             regresarFormulario();
         }
 
+        // ------------------------------------------------------------------
+        // 8. PROCESAMIENTO Y COMPRESIÓN DE FOTOS (BLOBS)
+        // ------------------------------------------------------------------
         function procesarImagen(input, idPreview) {
             cerrarMenuFoto();
             const file = input.files[0];
@@ -987,19 +1132,39 @@
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement("canvas");
-                    const MAX_WIDTH = 500; 
-                    const scaleSize = MAX_WIDTH / img.width;
-                    canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
-                    canvas.height = img.width > MAX_WIDTH ? img.height * scaleSize : img.height;
+                    const MAX_DIMENSION = 1280; 
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_DIMENSION) {
+                            height *= MAX_DIMENSION / width;
+                            width = MAX_DIMENSION;
+                        }
+                    } else {
+                        if (height > MAX_DIMENSION) {
+                            width *= MAX_DIMENSION / height;
+                            height = MAX_DIMENSION;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
 
                     const ctx = canvas.getContext("2d");
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    const preview = document.getElementById(idPreview);
-                    preview.src = canvas.toDataURL("image/jpeg", 0.65);
-                    preview.style.display = "block";
-                    preview.closest('.photo-uploader').querySelector('.photo-text').style.display = "none";
-                    preview.closest('.photo-uploader').classList.add('photo-loaded');
+                    // Exportar a Blob en vez de Base64 (70% calidad para optimizar RAM)
+                    canvas.toBlob((blob) => {
+                        const preview = document.getElementById(idPreview);
+                        preview.src = URL.createObjectURL(blob);
+                        preview.fileBlob = blob; // Guardar el blob nativo para ser extraído
+                        preview.style.display = "block";
+                        preview.closest('.photo-uploader').querySelector('.photo-text').style.display = "none";
+                        preview.closest('.photo-uploader').classList.add('photo-loaded');
+                        
+                        guardarBorrador(); // Guardado automático
+                    }, 'image/jpeg', 0.7);
                 };
                 img.src = e.target.result;
             };
@@ -1027,7 +1192,13 @@
             formatearCertificado(document.getElementById("txtCertificado"));
             const certificadoFinal = document.getElementById("txtCertificado").value;
 
-            const getFoto = (id) => document.getElementById(id).src.startsWith("data:") ? document.getElementById(id).src : null;
+            // Extraer la foto priorizando el formato Blob
+            const getFoto = (id) => {
+                const img = document.getElementById(id);
+                if (img.fileBlob) return img.fileBlob;
+                if (img.src.startsWith("data:")) return img.src;
+                return null;
+            };
 
             const registro = {
                 fecha: fechaActual, 
@@ -1050,11 +1221,16 @@
             
             store.put(registro).onsuccess = () => {
                 mostrarToast(editId ? "✅ Registro actualizado" : "✅ Registro guardado");
+                // Eliminar borrador del localStorage solo al guardar exitosamente
+                localStorage.removeItem('borrador_evaluacion_actual');
                 regresarPrincipal();
                 cargarTabla();
             };
         }
 
+        // ------------------------------------------------------------------
+        // 9. TABLA DE REGISTROS Y MODALES
+        // ------------------------------------------------------------------
         function cargarTabla() {
             const tbody = document.getElementById("tablaCuerpo");
             tbody.innerHTML = "";
@@ -1124,8 +1300,23 @@
                 if (!r) return;
 
                 document.getElementById("detTitle").innerText = `Detalle ID: ${r.id}`;
-                const crearImgHtml = (label, src) => src ? `<div><strong>${label}:</strong><br><img src="${src}" onclick="abrirZoom(this)"></div>` : '';
-                let htmlFotos = `<div class="detail-photos">${crearImgHtml('Fachada', r.fotoFachada)}${crearImgHtml('Boceto', r.fotoBoceto)}</div>`;
+                
+                // Mostrar fotos utilizando el helper por si son Blobs
+                const crearImgHtml = (label, srcData, certificado) => {
+                    if (!srcData) return '';
+                    const url = obtenerUrlFoto(srcData);
+                    const fileName = `Certificado_${certificado}_${label}.jpg`;
+                    return `
+                        <div style="display:flex; flex-direction:column;">
+                            <strong>${label}:</strong>
+                            <img src="${url}" onclick="abrirZoom(this)">
+                            <button type="button" class="btn-descargar-foto" onclick="descargarFotoActual('${url}', '${fileName}')">
+                                💾 Guardar foto
+                            </button>
+                        </div>`;
+                };
+                
+                let htmlFotos = `<div class="detail-photos">${crearImgHtml('Fachada', r.fotoFachada, r.certificado)}${crearImgHtml('Boceto', r.fotoBoceto, r.certificado)}</div>`;
 
                 document.getElementById("detBody").innerHTML = `
                     <p><strong>Certificado:</strong> ${r.certificado}</p>
@@ -1175,6 +1366,9 @@
             setTimeout(() => t.style.opacity = "0", 2500);
         }
 
+        // ------------------------------------------------------------------
+        // 10. GENERADOR DE REPORTES (WHATSAPP)
+        // ------------------------------------------------------------------
         function compartirOEnviarReporte() {
             db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").getAll().onsuccess = event => {
                 const registros = event.target.result.filter(r => r.fecha === fechaActual);
@@ -1218,12 +1412,9 @@
 
                         listaRegs.forEach(r => {
                             let partesLinea = [`📜 ${r.certificado}`];
-                            
                             if (r.piso) partesLinea.push(`Piso ${r.piso}`);
-                            
                             const torreIdentificador = r.torre || "";
                             partesLinea.push(`Apto ${r.apto}${torreIdentificador}`);
-
                             rStr += `${partesLinea.join(" | ")}\n`;
                         });
                         rStr += `\n`;
@@ -1238,6 +1429,263 @@
 
                 if (navigator.share) navigator.share({ text: rStr });
                 else navigator.clipboard.writeText(rStr).then(() => mostrarToast("✅ Copiado al portapapeles"));
+            };
+        }
+
+        // ------------------------------------------------------------------
+        // 11. SISTEMA DE AUTOSAVE Y BORRADOR ACTIVO
+        // ------------------------------------------------------------------
+        async function guardarBorrador() {
+            if (!document.getElementById("viewForm").classList.contains("active")) return;
+            
+            const getBorradorFoto = async (id) => {
+                const img = document.getElementById(id);
+                if (!img || img.style.display === "none") return null;
+                if (img.fileBlob) {
+                    return new Promise(resolve => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(img.fileBlob);
+                    });
+                }
+                if (img.src.startsWith("data:")) return img.src;
+                return null;
+            };
+
+            const borrador = {
+                editId: document.getElementById("editId").value,
+                certificado: document.getElementById("txtCertificado").value,
+                calle: document.getElementById("txtCalle").value,
+                urbanismo: document.getElementById("txtUrbanismo") ? document.getElementById("txtUrbanismo").value : "",
+                edificio: document.getElementById("txtEdificio").value,
+                torre: document.getElementById("txtTorre").value,
+                piso: document.getElementById("txtPiso").value,
+                apto: document.getElementById("txtApto").value,
+                comentarios: document.getElementById("txtComentarios").value,
+                gravedad: document.getElementById("selGravedad").value,
+                fotoFachada: await getBorradorFoto("prevFachada"),
+                fotoBoceto: await getBorradorFoto("prevBoceto")
+            };
+            
+            localStorage.setItem('borrador_evaluacion_actual', JSON.stringify(borrador));
+        }
+
+        function restaurarBorrador() {
+            const dataStr = localStorage.getItem('borrador_evaluacion_actual');
+            if (dataStr) {
+                try {
+                    const r = JSON.parse(dataStr);
+                    document.getElementById("editId").value = r.editId || "";
+                    document.getElementById("txtCertificado").value = r.certificado || "";
+                    document.getElementById("txtCalle").value = r.calle || "";
+                    if (document.getElementById("txtUrbanismo")) document.getElementById("txtUrbanismo").value = r.urbanismo || "";
+                    document.getElementById("txtEdificio").value = r.edificio || "";
+                    document.getElementById("txtTorre").value = r.torre || "";
+                    document.getElementById("txtPiso").value = r.piso || "";
+                    document.getElementById("txtApto").value = r.apto || "";
+                    document.getElementById("txtComentarios").value = r.comentarios || "";
+                    document.getElementById("selGravedad").value = r.gravedad || "";
+                    
+                    const restaurarFoto = (id, base64) => {
+                        if (base64) {
+                            const img = document.getElementById(id);
+                            fetch(base64).then(res => res.blob()).then(blob => {
+                                img.src = URL.createObjectURL(blob);
+                                img.fileBlob = blob;
+                                img.style.display = "block";
+                                img.closest('.photo-uploader').querySelector('.photo-text').style.display = "none";
+                                img.closest('.photo-uploader').classList.add('photo-loaded');
+                            });
+                        }
+                    };
+                    
+                    if (r.fotoFachada) restaurarFoto("prevFachada", r.fotoFachada);
+                    if (r.fotoBoceto) restaurarFoto("prevBoceto", r.fotoBoceto);
+                    
+                    actualizarDireccionCompuesta();
+                    
+                    if(r.calle || r.edificio || r.fotoFachada || r.certificado) {
+                        document.querySelectorAll('.view').forEach(v => v.classList.remove("active"));
+                        document.getElementById("viewForm").classList.add("active");
+                        document.getElementById("formTitle").innerText = r.editId ? "Editar Evaluación (Borrador)" : "Nueva Evaluación (Borrador)";
+                    }
+                } catch(e) { console.error("Error al restaurar borrador", e); }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // 12. MIGRACIÓN EN BACKGROUND PARA FOTOS ANTIGUAS
+        // ------------------------------------------------------------------
+        async function migrarFotosAntiguasABlob() {
+            if (localStorage.getItem('migracion_fotos_v2_completada') === 'true') return;
+            if (!db) return;
+
+            const getAllRequest = db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").getAll();
+            
+            getAllRequest.onsuccess = async (e) => {
+                const registros = e.target.result;
+                let huboCambios = false;
+
+                const base64ToBlob = (base64) => {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement("canvas");
+                            const MAX = 1280;
+                            let w = img.width, h = img.height;
+                            if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
+                            else { if (h > MAX) { w *= MAX/h; h = MAX; } }
+                            canvas.width = w; canvas.height = h;
+                            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                            canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.7);
+                        };
+                        img.onerror = () => resolve(null);
+                        img.src = base64;
+                    });
+                };
+
+                const necesitaMigrar = registros.some(r => 
+                    (typeof r.fotoFachada === "string" && r.fotoFachada.startsWith("data:image")) ||
+                    (typeof r.fotoBoceto === "string" && r.fotoBoceto.startsWith("data:image"))
+                );
+
+                if (necesitaMigrar) mostrarToast("🧹 Optimizando memoria. Por favor espere...");
+
+                for (let r of registros) {
+                    let mod = false;
+                    if (typeof r.fotoFachada === "string" && r.fotoFachada.startsWith("data:image")) {
+                        const blob = await base64ToBlob(r.fotoFachada);
+                        if (blob) { r.fotoFachada = blob; mod = true; }
+                    }
+                    if (typeof r.fotoBoceto === "string" && r.fotoBoceto.startsWith("data:image")) {
+                        const blob = await base64ToBlob(r.fotoBoceto);
+                        if (blob) { r.fotoBoceto = blob; mod = true; }
+                    }
+                    if (mod) { r._needsUpdate = true; huboCambios = true; }
+                }
+
+                if (huboCambios) {
+                    const tx = db.transaction(["inspecciones"], "readwrite");
+                    const store = tx.objectStore("inspecciones");
+                    for (let r of registros) {
+                        if (r._needsUpdate) {
+                            delete r._needsUpdate;
+                            store.put(r);
+                        }
+                    }
+                    tx.oncomplete = () => {
+                        localStorage.setItem('migracion_fotos_v2_completada', 'true');
+                        setTimeout(() => mostrarToast("✅ Memoria liberada correctamente"), 2500);
+                    };
+                } else {
+                    localStorage.setItem('migracion_fotos_v2_completada', 'true');
+                }
+            };
+        }
+
+        async function cargarNovedades() {
+            try {
+                const response = await fetch('./novedades.json?t=' + new Date().getTime());
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                const spanVersion = document.getElementById("appVersionSpan");
+                if (spanVersion) spanVersion.innerText = data.version;
+
+                const versionGuardada = localStorage.getItem('miyamoto_version_actual');
+                if (versionGuardada !== data.version) {
+                    let alertText = data.titulo + "\n\nNovedades:\n";
+                    data.cambios.forEach(c => alertText += "- " + c + "\n");
+                    alert(alertText);
+                    localStorage.setItem('miyamoto_version_actual', data.version);
+                }
+            } catch (err) {
+                console.warn("No se pudo cargar novedades.json", err);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // 13. EVENT LISTENERS GENERALES
+        // ------------------------------------------------------------------
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarNovedades();
+            const form = document.getElementById('inspeccionForm');
+            form.addEventListener('input', guardarBorrador);
+            form.addEventListener('change', guardarBorrador);
+            
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') guardarBorrador();
+            });
+        });
+
+        // ------------------------------------------------------------------
+        // 14. EXPORTACIÓN Y DESCARGAS DE IMÁGENES
+        // ------------------------------------------------------------------
+        function descargarFotoActual(url, fileName) {
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        async function exportarFotosZIP() {
+            if (!db) return;
+            mostrarToast("📦 Preparando ZIP...");
+            
+            db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").getAll().onsuccess = async (event) => {
+                const registros = event.target.result.filter(r => r.fecha === fechaActual);
+                if (registros.length === 0) return mostrarToast("⚠️ No hay datos para hoy.");
+
+                const zip = new JSZip();
+                let hasPhotos = false;
+
+                const getBlobFromData = async (foto) => {
+                    if (!foto) return null;
+                    if (foto instanceof Blob) return foto;
+                    if (typeof foto === "string" && foto.startsWith("data:")) {
+                        const res = await fetch(foto);
+                        return await res.blob();
+                    }
+                    return null;
+                };
+
+                for (const r of registros) {
+                    const cert = r.certificado || `ID-${r.id}`;
+                    if (r.fotoFachada) {
+                        const blobF = await getBlobFromData(r.fotoFachada);
+                        if (blobF) {
+                            zip.file(`Certificado_${cert}_Fachada.jpg`, blobF);
+                            hasPhotos = true;
+                        }
+                    }
+                    if (r.fotoBoceto) {
+                        const blobB = await getBlobFromData(r.fotoBoceto);
+                        if (blobB) {
+                            zip.file(`Certificado_${cert}_Boceto.jpg`, blobB);
+                            hasPhotos = true;
+                        }
+                    }
+                }
+
+                if (!hasPhotos) {
+                    return mostrarToast("⚠️ No hay fotos guardadas hoy.");
+                }
+
+                mostrarToast("📦 Generando archivo ZIP...");
+                const content = await zip.generateAsync({ type: "blob" });
+                
+                const url = URL.createObjectURL(content);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `Fotos_Inspeccion_${fechaActual.replace(/-/g, '')}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                
+                mostrarToast("✅ ZIP descargado exitosamente");
             };
         }
     </script>
