@@ -414,6 +414,8 @@
 
     <datalist id="listaCalles"></datalist>
     <datalist id="listaUrbanismos"></datalist>
+    <datalist id="listaManzanas"></datalist>
+    <datalist id="listaParcelas"></datalist>
     <datalist id="listaEdificios"></datalist>
     <datalist id="listaTorres"></datalist>
 
@@ -443,9 +445,9 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Calle</th>
-                            <th>Ubicación</th>
                             <th>Certificado</th>
+                            <th>Manzana</th>
+                            <th>Parcela</th>
                             <th style="width: 44px; text-align: center;"></th>
                         </tr>
                     </thead>
@@ -454,7 +456,7 @@
             </div>
 
             <div id="resumenContadores" style="text-align: right; font-size: 0.85rem; font-weight: bold; margin-bottom: 60px; padding-right: 10px;">
-                Total Evaluaciones: 0
+                Total Evaluaciones Hoy: 0
             </div>
 
             <div class="bottom-actions">
@@ -479,6 +481,17 @@
 
                 <div style="display: flex; gap: 10px;">
                     <div class="form-group" style="flex: 1;">
+                        <label>Manzana</label>
+                        <input type="text" id="txtManzana" list="listaManzanas" class="form-control" placeholder="Ej. CAT-S5-0122" required autocomplete="off"> <!-- oninput="actualizarDireccionCompuesta()"-->
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Parcela</label>
+                        <input type="text" id="txtParcela" list="listaParcelas" class="form-control" placeholder="Ej. Parcela 12" required autocomplete="off"> <!-- oninput="actualizarDireccionCompuesta()"-->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div class="form-group" style="flex: 1;">
                         <label>Calle/Sector</label>
                         <input type="text" id="txtCalle" list="listaCalles" class="form-control" placeholder="Calle Soublette" required autocomplete="off" oninput="actualizarDireccionCompuesta()">
                     </div>
@@ -490,8 +503,8 @@
 
                 <div style="display: flex; gap: 8px;">
                     <div class="form-group" style="flex: 1;">
-                        <label>Edificio/Casa</label>
-                        <input type="text" id="txtEdificio" list="listaEdificios" class="form-control" placeholder="Ej. Bloque 4" required autocomplete="off" oninput="actualizarDireccionCompuesta()">
+                        <label>Edificio</label>
+                        <input type="text" id="txtEdificio" list="listaEdificios" class="form-control" placeholder="Ej. Bloque 4" autocomplete="off" oninput="actualizarDireccionCompuesta()">
                     </div>
                     <div class="form-group" style="flex: 1;">
                         <label>Torre</label>
@@ -510,7 +523,7 @@
                 <div class="form-group">
                     <label>Dirección Completa</label>
                     <div style="display: flex; gap: 6px;">
-                        <input type="text" id="txtDireccionCompleta" class="form-control" readonly placeholder="Parroquia, calle, edificio, torre, Piso, Apartamento" style="background-color: #f0f0f0; font-size: 0.8rem;">
+                        <input type="text" id="txtDireccionCompleta" class="form-control" readonly placeholder="Parroquia, calle, manzana, parcela, edificio, torre, Piso, Apartamento" style="background-color: #f0f0f0; font-size: 0.8rem;">
                         <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="copiarAlPortapapeles('txtDireccionCompleta', 'Dirección copiada')">📋 Copiar</button>
                     </div>
                 </div>
@@ -635,41 +648,31 @@
 
     <script src="./jszip.min.js"></script>
     <script>
-        /**
-         * Guarda una foto (sea Blob o Base64) directamente en el almacenamiento local del dispositivo.
-         * @param {Blob|string} foto - Objeto Blob o cadena Base64 de la foto.
-         * @param {string} nombreArchivo - Nombre con el que se guardará (ej: 'Inspeccion_Foto1.jpg').
-         */
         function guardarFotoEnDiscoLocal(foto, nombreArchivo = 'foto_inspeccion.jpg') {
             let url;
             let esUrlCreada = false;
 
-            // 1. Convertir o preparar la URL de la imagen
             if (foto instanceof Blob) {
                 url = URL.createObjectURL(foto);
                 esUrlCreada = true;
             } else {
-                url = foto; // Si es Base64 antigua
+                url = foto;
             }
 
-            // 2. Crear un elemento <a> virtual
             const enlace = document.createElement('a');
             enlace.href = url;
-            enlace.download = nombreArchivo; // Define que se descargará y el nombre del archivo
+            enlace.download = nombreArchivo;
 
-            // 3. Forzar el evento de descarga en el navegador
             document.body.appendChild(enlace);
             enlace.click();
             document.body.removeChild(enlace);
 
-            // 4. Liberar memoria si creamos una URL temporal
             if (esUrlCreada) {
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
             }
         }
 
         function descargarFotoActual() {
-            // Ejemplo: tomar la foto seleccionada del borrador o inspección
             if (fotoActualBlob) {
                 const fecha = new Date().toISOString().slice(0, 10);
                 guardarFotoEnDiscoLocal(fotoActualBlob, `Mamposteria_${fecha}.jpg`);
@@ -678,9 +681,6 @@
             }
         }
 
-        // ------------------------------------------------------------------
-        // 1. REGISTRO DEL SERVICE WORKER (PWA)
-        // ------------------------------------------------------------------
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -692,21 +692,14 @@
             });
         }
 
-        // ------------------------------------------------------------------
-        // 2. UTILIDADES Y HELPERS DE IMÁGENES (COMPATIBILIDAD BASE64 / BLOB)
-        // ------------------------------------------------------------------
         function obtenerUrlFoto(foto) {
             if (!foto) return "";
             if (foto instanceof Blob) return URL.createObjectURL(foto);
             if (typeof foto === "string" && foto.startsWith("data:")) return foto;
-            return foto; // Fallback
+            return foto;
         }
 
-        // ------------------------------------------------------------------
-        // 3. DATOS Y VARIABLES GLOBALES
-        // ------------------------------------------------------------------
         let itemsComentariosDisponibles = [
-            // 🟢 GRAVEDAD VERDE (Leve)
             { gravedad: "Verde", descripcion: "Fisuras superficiales en frisos/revoques (ancho < 0.5 mm)." },
             { gravedad: "Verde", descripcion: "Agrietamiento en tabiquería de mampostería en unión con vigas/columnas." },
             { gravedad: "Verde", descripcion: "Desprendimiento puntual de revestimientos, cerámicas o pintura." },
@@ -717,7 +710,6 @@
             { gravedad: "Verde", descripcion: "Fisura lineal fina sobre junta de mortero (ancho < 1 mm)." },
             { gravedad: "Verde", descripcion: "Descascaramiento o fisuración leve del acabado sin afectación del bloque." },
 
-            // 🟡 GRAVEDAD AMARILLO (Moderado)
             { gravedad: "Amarillo", descripcion: "Grietas diagonales en X por cortante en muros o columnas." },
             { gravedad: "Amarillo", descripcion: "Agrietamiento por flexión en extremos de vigas." },
             { gravedad: "Amarillo", descripcion: "Spalling severo con exposición de acero de refuerzo (sin pandeo)." },
@@ -733,7 +725,6 @@
             { gravedad: "Amarillo", descripcion: "Desprendimiento parcial de grandes paños de friso o revestimiento." },
             { gravedad: "Amarillo", descripcion: "Desplazamiento o fisura en antepechos y muros de cerramiento sin riesgo inmediato de caída." },
 
-            // 🔴 GRAVEDAD ROJO (Severo)
             { gravedad: "Rojo", descripcion: "Pandeo de barras de acero con aplastamiento del concreto." },
             { gravedad: "Rojo", descripcion: "Falla por Piso Blando o Piso Débil (deformación lateral severa)." },
             { gravedad: "Rojo", descripcion: "Falla por Columna Corta (cizallamiento destructivo)." },
@@ -757,16 +748,17 @@
         let pressTimer;
         let fechaActual = ""; 
         let inspectoresActuales = []; 
-        let callesExistentes = new Set();
-        let urbanismosExistentes = new Set();
-        let edificiosExistentes = new Set();
-        let torresExistentes = new Set();
+        
+        let callesExistentes = [];
+        let urbanismosExistentes = [];
+        let manzanasExistentes = [];
+        let parcelasExistentes = [];
+        let edificiosExistentes = [];
+        let torresExistentes = [];
+        
         let configuracionActualGlobal = null;
         let currentEditCuadrilla = null;
 
-        // ------------------------------------------------------------------
-        // 4. FUNCIONES UI BÁSICAS
-        // ------------------------------------------------------------------
         function abrirMenuFoto(target) {
             currentPhotoTarget = target;
             
@@ -823,25 +815,27 @@
             const parroquia = document.getElementById("cfgParroquia") ? document.getElementById("cfgParroquia").value.trim() : "";
             const calle = document.getElementById("txtCalle").value.trim();
             const urbanismo = document.getElementById("txtUrbanismo") ? document.getElementById("txtUrbanismo").value.trim() : "";
+            //const manzana = document.getElementById("txtManzana") ? document.getElementById("txtManzana").value.trim() : "";
+            //const parcela = document.getElementById("txtParcela") ? document.getElementById("txtParcela").value.trim() : "";
             const edificio = document.getElementById("txtEdificio").value.trim();
             const torre = document.getElementById("txtTorre").value.trim();
             const piso = document.getElementById("txtPiso").value.trim();
             const apto = document.getElementById("txtApto").value.trim();
 
+            //const manzanaFormateada = manzana ? (manzana.toLowerCase().startsWith("mz") || manzana.toLowerCase().startsWith("manzana") ? manzana : `Mz. ${manzana}`) : "";
+            //const parcelaFormateada = parcela ? (parcela.toLowerCase().startsWith("parc") || parcela.toLowerCase().startsWith("parcela") ? parcela : `Parc. ${parcela}`) : "";
+            const edificioFormateada = edificio ? (edificio.toLowerCase().startsWith("edificio") ? edificio : `edif ${edificio}`) : "";
             const torreFormateada = torre ? (torre.toLowerCase().startsWith("torre") ? torre : `Torre ${torre}`) : "";
             const pisoFormateado = piso ? (piso.toLowerCase().startsWith("piso") ? piso : `Piso ${piso}`) : "";
-            const aptoFormateado = apto ? (apto.toLowerCase().startsWith("apto") ? apto : `Apto ${apto}`) : "";
+            const aptoFormateado = apto ? (apto.toLowerCase().startsWith("apto") ? apto : `Casa ${apto}`) : "";
 
             const componentes = [
-                parroquia, calle, urbanismo, edificio, torreFormateada, pisoFormateado, aptoFormateado
+                parroquia, urbanismo, calle, edificioFormateada, torreFormateada, aptoFormateado, pisoFormateado
             ].filter(Boolean);
 
             document.getElementById("txtDireccionCompleta").value = componentes.join(", ");
         }
 
-        // ------------------------------------------------------------------
-        // 5. BASE DE DATOS E INICIALIZACIÓN
-        // ------------------------------------------------------------------
         const DB_NAME = "EvaluacionesDB";
         const DB_VERSION = 1;
         let db;
@@ -862,11 +856,7 @@
             db = e.target.result;
             inicializarFechaHoy();
             cargarTabla();
-            
-            // 1. Ejecutar el script de migración en background para liberar RAM
             migrarFotosAntiguasABlob();
-            
-            // 2. Restaurar borrador pendiente si la app se cerró inesperadamente
             restaurarBorrador();
         };
 
@@ -883,9 +873,6 @@
             cargarTabla();
         }
 
-        // ------------------------------------------------------------------
-        // 6. CONFIGURACIÓN Y EQUIPO (CUADRILLA)
-        // ------------------------------------------------------------------
         function comprobarConfiguracionGeneral() {
             if (!db) return;
             db.transaction(["configuracion"], "readonly").objectStore("configuracion").get("actual").onsuccess = e => {
@@ -963,9 +950,6 @@
             };
         }
 
-        // ------------------------------------------------------------------
-        // 7. FLUJO DEL FORMULARIO Y AUTOSAVE
-        // ------------------------------------------------------------------
         function intentarNuevaInspeccion() {
             if (inspectoresActuales.length > 0) mostrarFormulario();
             else alert("⚠️ Configure el equipo de trabajo primero.");
@@ -975,11 +959,11 @@
             const img = document.getElementById(id);
             img.style.display = "none";
             img.src = "";
-            img.fileBlob = null; // Limpiar blob temporal
+            img.fileBlob = null;
             const textSpan = img.closest('.photo-uploader').querySelector('.photo-text');
             textSpan.style.display = "flex";
             img.closest('.photo-uploader').classList.remove('photo-loaded');
-            guardarBorrador(); // Disparar borrador al borrar foto
+            guardarBorrador();
         }
 
         function mostrarFormulario(idEdit = null) {
@@ -996,6 +980,8 @@
                     const r = e.target.result;
                     if (r) {
                         document.getElementById("txtCertificado").value = r.certificado;
+                        if (document.getElementById("txtManzana")) document.getElementById("txtManzana").value = r.manzana || "";
+                        if (document.getElementById("txtParcela")) document.getElementById("txtParcela").value = r.parcela || "";
                         document.getElementById("txtCalle").value = r.calle;
                         if (document.getElementById("txtUrbanismo")) document.getElementById("txtUrbanismo").value = r.urbanismo || "";
                         document.getElementById("txtEdificio").value = r.edificio;
@@ -1006,13 +992,12 @@
                         document.getElementById("selGravedad").value = r.gravedad || "";
                         currentEditCuadrilla = r.cuadrilla || null;
                         
-                        // Set foto optimizado para manejar Blobs
                         const setFoto = (id, fotoData) => {
                             if (fotoData) {
                                 const img = document.getElementById(id);
-                                img.src = obtenerUrlFoto(fotoData); // Renderiza local temporal o Base64
+                                img.src = obtenerUrlFoto(fotoData);
                                 if (fotoData instanceof Blob) {
-                                    img.fileBlob = fotoData; // Conserva referencia al Blob nativo
+                                    img.fileBlob = fotoData;
                                 } else {
                                     img.fileBlob = null;
                                 }
@@ -1115,13 +1100,10 @@
                 document.getElementById("selGravedad").value = maxGravedad;
             }
             
-            guardarBorrador(); // Trigger autosave al aplicar comentarios
+            guardarBorrador();
             regresarFormulario();
         }
 
-        // ------------------------------------------------------------------
-        // 8. PROCESAMIENTO Y COMPRESIÓN DE FOTOS (BLOBS)
-        // ------------------------------------------------------------------
         function procesarImagen(input, idPreview) {
             cerrarMenuFoto();
             const file = input.files[0];
@@ -1154,16 +1136,15 @@
                     const ctx = canvas.getContext("2d");
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    // Exportar a Blob en vez de Base64 (70% calidad para optimizar RAM)
                     canvas.toBlob((blob) => {
                         const preview = document.getElementById(idPreview);
                         preview.src = URL.createObjectURL(blob);
-                        preview.fileBlob = blob; // Guardar el blob nativo para ser extraído
+                        preview.fileBlob = blob;
                         preview.style.display = "block";
                         preview.closest('.photo-uploader').querySelector('.photo-text').style.display = "none";
                         preview.closest('.photo-uploader').classList.add('photo-loaded');
                         
-                        guardarBorrador(); // Guardado automático
+                        guardarBorrador();
                     }, 'image/jpeg', 0.7);
                 };
                 img.src = e.target.result;
@@ -1171,16 +1152,25 @@
             reader.readAsDataURL(file);
         }
 
+        function agregarAHistorial(lista, valor) {
+            if (!valor) return;
+            const idx = lista.indexOf(valor);
+            if (idx > -1) lista.splice(idx, 1);
+            lista.unshift(valor);
+        }
+
         function actualizarDatalists() {
-            const llenar = (id, set) => {
+            const llenar = (id, lista) => {
                 const dl = document.getElementById(id);
                 if (dl) {
                     dl.innerHTML = "";
-                    set.forEach(val => dl.innerHTML += `<option value="${val}">`);
+                    lista.forEach(val => dl.innerHTML += `<option value="${val}">`);
                 }
             };
             llenar("listaCalles", callesExistentes);
             llenar("listaUrbanismos", urbanismosExistentes);
+            llenar("listaManzanas", manzanasExistentes);
+            llenar("listaParcelas", parcelasExistentes);
             llenar("listaEdificios", edificiosExistentes);
             llenar("listaTorres", torresExistentes);
         }
@@ -1192,7 +1182,6 @@
             formatearCertificado(document.getElementById("txtCertificado"));
             const certificadoFinal = document.getElementById("txtCertificado").value;
 
-            // Extraer la foto priorizando el formato Blob
             const getFoto = (id) => {
                 const img = document.getElementById(id);
                 if (img.fileBlob) return img.fileBlob;
@@ -1203,6 +1192,8 @@
             const registro = {
                 fecha: fechaActual, 
                 certificado: certificadoFinal,
+                manzana: document.getElementById("txtManzana") ? document.getElementById("txtManzana").value.trim() : "",
+                parcela: document.getElementById("txtParcela") ? document.getElementById("txtParcela").value.trim() : "",
                 calle: document.getElementById("txtCalle").value.trim(),
                 urbanismo: document.getElementById("txtUrbanismo") ? document.getElementById("txtUrbanismo").value.trim() : "",
                 edificio: document.getElementById("txtEdificio").value.trim(),
@@ -1216,28 +1207,34 @@
                 cuadrilla: currentEditCuadrilla || (configuracionActualGlobal ? { ...configuracionActualGlobal } : null)
             };
 
+            agregarAHistorial(callesExistentes, registro.calle);
+            agregarAHistorial(urbanismosExistentes, registro.urbanismo);
+            agregarAHistorial(manzanasExistentes, registro.manzana);
+            agregarAHistorial(parcelasExistentes, registro.parcela);
+            agregarAHistorial(edificiosExistentes, registro.edificio);
+            agregarAHistorial(torresExistentes, registro.torre);
+            actualizarDatalists();
+
             const store = db.transaction(["inspecciones"], "readwrite").objectStore("inspecciones");
             if (editId) registro.id = Number(editId);
             
             store.put(registro).onsuccess = () => {
                 mostrarToast(editId ? "✅ Registro actualizado" : "✅ Registro guardado");
-                // Eliminar borrador del localStorage solo al guardar exitosamente
                 localStorage.removeItem('borrador_evaluacion_actual');
                 regresarPrincipal();
                 cargarTabla();
             };
         }
 
-        // ------------------------------------------------------------------
-        // 9. TABLA DE REGISTROS Y MODALES
-        // ------------------------------------------------------------------
         function cargarTabla() {
             const tbody = document.getElementById("tablaCuerpo");
             tbody.innerHTML = "";
-            callesExistentes.clear();
-            urbanismosExistentes.clear();
-            edificiosExistentes.clear();
-            torresExistentes.clear();
+            callesExistentes = [];
+            urbanismosExistentes = [];
+            manzanasExistentes = [];
+            parcelasExistentes = [];
+            edificiosExistentes = [];
+            torresExistentes = [];
 
             if (!db) return;
 
@@ -1249,10 +1246,12 @@
                 if (cursor) {
                     const r = cursor.value;
                     
-                    if (r.calle) callesExistentes.add(r.calle);
-                    if (r.urbanismo) urbanismosExistentes.add(r.urbanismo);
-                    if (r.edificio) edificiosExistentes.add(r.edificio);
-                    if (r.torre) torresExistentes.add(r.torre);
+                    if (r.calle) agregarAHistorial(callesExistentes, r.calle);
+                    if (r.urbanismo) agregarAHistorial(urbanismosExistentes, r.urbanismo);
+                    if (r.manzana) agregarAHistorial(manzanasExistentes, r.manzana);
+                    if (r.parcela) agregarAHistorial(parcelasExistentes, r.parcela);
+                    if (r.edificio) agregarAHistorial(edificiosExistentes, r.edificio);
+                    if (r.torre) agregarAHistorial(torresExistentes, r.torre);
 
                     if (r.fecha === fechaActual) {
                         totalDia++;
@@ -1262,19 +1261,10 @@
                         else if (r.gravedad === "Amarillo") tr.classList.add("bg-amarillo");
                         else if (r.gravedad === "Rojo") tr.classList.add("bg-rojo");
 
-                        let ubicacionPartes = [];
-                        if (r.edificio) ubicacionPartes.push(`${r.edificio}`);
-                        if (r.piso) ubicacionPartes.push(`Piso ${r.piso}`);
-                        let aptoTorre = "";
-                        if (r.apto) aptoTorre += `Apto ${r.apto}`;
-                        if (r.torre) aptoTorre += (aptoTorre ? ` ${r.torre}` : r.torre);
-                        if (aptoTorre) ubicacionPartes.push(aptoTorre);
-                        const ubicacionConstruida = ubicacionPartes.join(", ");
-
                         tr.innerHTML = `
-                            <td>${r.calle}</td>
-                            <td>${ubicacionConstruida}</td>
-                            <td>${r.certificado}</td>
+                            <td>${r.certificado || ''}</td>
+                            <td>${r.manzana || ''}</td>
+                            <td>${r.parcela || ''}</td>
                             <td style="text-align: center; padding: 0;">
                                 <button class="btn-icon" onclick="abrirMenuRegistro(event, ${r.id})">⋮</button>
                             </td>
@@ -1301,7 +1291,6 @@
 
                 document.getElementById("detTitle").innerText = `Detalle ID: ${r.id}`;
                 
-                // Mostrar fotos utilizando el helper por si son Blobs
                 const crearImgHtml = (label, srcData, certificado) => {
                     if (!srcData) return '';
                     const url = obtenerUrlFoto(srcData);
@@ -1320,6 +1309,8 @@
 
                 document.getElementById("detBody").innerHTML = `
                     <p><strong>Certificado:</strong> ${r.certificado}</p>
+                    <p><strong>Manzana:</strong> ${r.manzana || 'N/A'}</p>
+                    <p><strong>Parcela:</strong> ${r.parcela || 'N/A'}</p>
                     <p><strong>Calle/Sector:</strong> ${r.calle}</p>
                     <p><strong>Urbanismo:</strong> ${r.urbanismo || 'N/A'}</p>
                     <p><strong>Edificación:</strong> ${r.edificio}</p>
@@ -1338,7 +1329,7 @@
             db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").get(id).onsuccess = e => {
                 const r = e.target.result;
                 if (r) {
-                    document.getElementById("menuTargetText").innerText = `${r.calle} - ${r.edificio} (${r.apto})`;
+                    document.getElementById("menuTargetText").innerText = `${r.certificado} - Mz: ${r.manzana || '-'} / Parc: ${r.parcela || '-'}`;
                     document.getElementById("btnMenuVer").onclick = () => { cerrarModal("modalMenu"); verDetalleInspeccion(id); };
                     document.getElementById("btnMenuEditar").onclick = () => { cerrarModal("modalMenu"); mostrarFormulario(id); };
                     document.getElementById("btnMenuEliminar").onclick = () => {
@@ -1366,9 +1357,6 @@
             setTimeout(() => t.style.opacity = "0", 2500);
         }
 
-        // ------------------------------------------------------------------
-        // 10. GENERADOR DE REPORTES (WHATSAPP)
-        // ------------------------------------------------------------------
         function compartirOEnviarReporte() {
             db.transaction(["inspecciones"], "readonly").objectStore("inspecciones").getAll().onsuccess = event => {
                 const registros = event.target.result.filter(r => r.fecha === fechaActual);
@@ -1412,6 +1400,8 @@
 
                         listaRegs.forEach(r => {
                             let partesLinea = [`📜 ${r.certificado}`];
+                            if (r.manzana) partesLinea.push(`Mz: ${r.manzana}`);
+                            if (r.parcela) partesLinea.push(`Parc: ${r.parcela}`);
                             if (r.piso) partesLinea.push(`Piso ${r.piso}`);
                             const torreIdentificador = r.torre || "";
                             partesLinea.push(`Apto ${r.apto}${torreIdentificador}`);
@@ -1432,9 +1422,6 @@
             };
         }
 
-        // ------------------------------------------------------------------
-        // 11. SISTEMA DE AUTOSAVE Y BORRADOR ACTIVO
-        // ------------------------------------------------------------------
         async function guardarBorrador() {
             if (!document.getElementById("viewForm").classList.contains("active")) return;
             
@@ -1455,6 +1442,8 @@
             const borrador = {
                 editId: document.getElementById("editId").value,
                 certificado: document.getElementById("txtCertificado").value,
+                manzana: document.getElementById("txtManzana") ? document.getElementById("txtManzana").value : "",
+                parcela: document.getElementById("txtParcela") ? document.getElementById("txtParcela").value : "",
                 calle: document.getElementById("txtCalle").value,
                 urbanismo: document.getElementById("txtUrbanismo") ? document.getElementById("txtUrbanismo").value : "",
                 edificio: document.getElementById("txtEdificio").value,
@@ -1477,6 +1466,8 @@
                     const r = JSON.parse(dataStr);
                     document.getElementById("editId").value = r.editId || "";
                     document.getElementById("txtCertificado").value = r.certificado || "";
+                    if (document.getElementById("txtManzana")) document.getElementById("txtManzana").value = r.manzana || "";
+                    if (document.getElementById("txtParcela")) document.getElementById("txtParcela").value = r.parcela || "";
                     document.getElementById("txtCalle").value = r.calle || "";
                     if (document.getElementById("txtUrbanismo")) document.getElementById("txtUrbanismo").value = r.urbanismo || "";
                     document.getElementById("txtEdificio").value = r.edificio || "";
@@ -1504,7 +1495,7 @@
                     
                     actualizarDireccionCompuesta();
                     
-                    if(r.calle || r.edificio || r.fotoFachada || r.certificado) {
+                    if(r.calle || r.edificio || r.fotoFachada || r.certificado || r.manzana || r.parcela) {
                         document.querySelectorAll('.view').forEach(v => v.classList.remove("active"));
                         document.getElementById("viewForm").classList.add("active");
                         document.getElementById("formTitle").innerText = r.editId ? "Editar Evaluación (Borrador)" : "Nueva Evaluación (Borrador)";
@@ -1513,9 +1504,6 @@
             }
         }
 
-        // ------------------------------------------------------------------
-        // 12. MIGRACIÓN EN BACKGROUND PARA FOTOS ANTIGUAS
-        // ------------------------------------------------------------------
         async function migrarFotosAntiguasABlob() {
             if (localStorage.getItem('migracion_fotos_v2_completada') === 'true') return;
             if (!db) return;
@@ -1604,9 +1592,6 @@
             }
         }
 
-        // ------------------------------------------------------------------
-        // 13. EVENT LISTENERS GENERALES
-        // ------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
             cargarNovedades();
             const form = document.getElementById('inspeccionForm');
@@ -1618,9 +1603,6 @@
             });
         });
 
-        // ------------------------------------------------------------------
-        // 14. EXPORTACIÓN Y DESCARGAS DE IMÁGENES
-        // ------------------------------------------------------------------
         function descargarFotoActual(url, fileName) {
             const a = document.createElement("a");
             a.href = url;
